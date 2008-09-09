@@ -13,7 +13,7 @@ uint64_t ident_key();
 unsigned int strhash(const char *str);
 
 int main(int argc, char *argv[])
-{
+{d
 	int rc;
 	char *val;
 	char str[30];
