@@ -244,7 +244,7 @@ void send_response(loong_conn *conn, http_response_t cmd, char *json)
 		writev(conn->sfd, vectors, 2);
 		es_free(res);
 	}
-	else if(cmd == HTTP_RESPONSE_LOGOUT_OK)
+	else if(cmd == HTTP_RESPONSE_LOGOUT_OK || cmd == HTTP_RESPONSE_DELETE_OK || cmd == HTTP_RESPONSE_UPDATE_OK)
 	{
 		res  = es_init();
 		recs = conf.site;
@@ -252,9 +252,24 @@ void send_response(loong_conn *conn, http_response_t cmd, char *json)
 		for(i=0; i<conf.num; i++)
 		{
 			es_append(res, "load_script(\"");
-			es_append(res, recs[i].logout);
+
+			switch(cmd)
+			{
+				case HTTP_RESPONSE_LOGOUT_OK:
+					es_append(res, recs[i].logout);
+					break;
+				case HTTP_RESPONSE_DELETE_OK:
+					es_append(res, recs[i].del);
+					break;
+				case HTTP_RESPONSE_UPDATE_OK:
+					es_append(res, recs[i].update);
+					break;
+			}
+
 			es_append(res, "\");\r\n");
 		}
+		
+		es_append(res, body);
 
 		memset(header, 0, sizeof(header));
 		header_len = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nDate: %s\r\nServer: loongSSO(RC1.0)\r\nContent-Length: %u\r\nConnection: close\r\nContent-Type: application/x-javascript\r\n\r\n", timebuf, es_len(res));
@@ -417,15 +432,17 @@ TCMAP *fetch_user_info(const char *uid)
 
 	const char *key;
 	
+	ind       = strhash(uid);
 	query_len = snprintf(query, sizeof(query), "SELECT `username`, `password`, `email`, `ip`, `sex`, `reg_time`, `c_status` FROM member_%d WHERE `uid` = '%s'", (ind % TABLE_CHUNK), uid);
-
+	
 	rc   = mysql_real_query(dbh, query, query_len);
 	if(rc) return NULL;
-
+	
 	res  = mysql_store_result(dbh); 
 	if(res == NULL) return NULL;
-
+	
 	num  = mysql_num_rows(res); 
+
 	if(num == 0)
 	{
 		mysql_free_result(res); 

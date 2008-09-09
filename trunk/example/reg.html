@@ -18,22 +18,27 @@
 	maxIntervalCount = 100;
 	
 	var http_response_t = {
-		HTTP_RESPONSE_EMAIL_NO            : 0,
-		HTTP_RESPONSE_EMAIL_OK            : 1,
-		HTTP_RESPONSE_LOGIN_OK            : 2,
-		HTTP_RESPONSE_LOGOUT_OK           : 3,
-		HTTP_RESPONSE_REGISTER_OK         : 4,
-		HTTP_RESPONSE_VALIDATE_NO         : 5,
-		HTTP_RESPONSE_VALIDATE_OK         : 6,
-		HTTP_RESPONSE_USERNAME_NO         : 7,
-		HTTP_RESPONSE_USERNAME_OK         : 8,
-		HTTP_RESPONSE_PASSWORD_NO         : 9,
-		HTTP_RESPONSE_EMAIL_EXISTS        : 10,
-		HTTP_RESPONSE_UNKNOWN_TYPE        : 11,
-		HTTP_RESPONSE_UNKNOWN_MODULE      : 12,
-		HTTP_RESPONSE_USERNAME_EXISTS     : 13,
-		HTTP_RESPONSE_EMAIL_NOT_EXISTS    : 14,
-		HTTP_RESPONSE_USERNAME_NOT_EXISTS : 15
+		HTTP_RESPONSE_SIGN_NO               : 0,
+		HTTP_RESPONSE_EMAIL_NO              : 1,
+		HTTP_RESPONSE_EMAIL_OK              : 2,
+		HTTP_RESPONSE_LOGIN_OK              : 3,
+		HTTP_RESPONSE_DB_ERROR              : 4,
+		HTTP_RESPONSE_LOGOUT_OK             : 5,
+		HTTP_RESPONSE_DELETE_OK             : 6,
+		HTTP_RESPONSE_DELETE_NO             : 7,
+		HTTP_RESPONSE_UPDATE_OK             : 8,
+		HTTP_RESPONSE_REGISTER_OK           : 9,
+		HTTP_RESPONSE_VALIDATE_NO           : 10,
+		HTTP_RESPONSE_VALIDATE_OK           : 11,
+		HTTP_RESPONSE_USERNAME_NO           : 12,
+		HTTP_RESPONSE_USERNAME_OK           : 13,
+		HTTP_RESPONSE_PASSWORD_NO           : 14,
+		HTTP_RESPONSE_EMAIL_EXISTS          : 15,
+		HTTP_RESPONSE_UNKNOWN_TYPE          : 16,
+		HTTP_RESPONSE_UNKNOWN_MODULE        : 17,
+		HTTP_RESPONSE_USERNAME_EXISTS       : 18,
+		HTTP_RESPONSE_EMAIL_NOT_EXISTS      : 19,
+		HTTP_RESPONSE_USERNAME_NOT_EXISTS   : 20
 	};
 
 	function is_code(code)
@@ -271,7 +276,7 @@
 	<div class="div_form">
 		<div class="div1 l">验证码：</div>
 		<div class="div4 l"><input class="div2_yzm" name="code" type="text" id="code" size="6" maxlength="4" autocomplete="off" /></div>
-		<div class="div3 l"><img style="cursor:pointer" src="http://www.cellphp.com:7171/?module=validate" id="codeImg" name="codeImg" alt="看不清楚?请点击刷新" onclick="this.src='http://www.cellphp.com:7171/?module=validate&rand='+Math.random();"/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;验证码不区分大小!</div>
+		<div class="div3 l"><img style="cursor:pointer" src="http://www.loongsso.com:7171/?module=validate" id="codeImg" name="codeImg" alt="看不清楚?请点击刷新" onclick="this.src='http://www.loongsso.com.com:7171/?module=validate&rand='+Math.random();"/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;验证码不区分大小!</div>
 	</div>
 
 	<div class="div_form">
