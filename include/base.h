@@ -79,6 +79,8 @@ struct loong_cmd_list
 	int (*cmd_handler)(loong_conn *conn);
 };
 
+
+
 #define TABLE_STRUCTURE   \
 	"CREATE TABLE IF NOT EXISTS `member_%d` ("                          \
 	  "`uid` bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT 'ID',"    \

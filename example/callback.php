@@ -1,5 +1,12 @@
 <?php
 
+define("PRIVATE_UPDATE_KEY", "loongSSO_UPDATE_CELLPHP_KEY");
+
+$uid = "1220975130730633983";
+
+echo md5(PRIVATE_UPDATE_KEY."|".$uid);
+
+/*
 define("PRIVATE_KEY", "loongSSO_YOU54_2008_KEY");	
 
 session_start();
@@ -26,6 +33,8 @@ else if($_GET["action"] == "logout")
 	session_unset();
 	session_destroy();
 }
+*/
+
 
 
 function loongsso_decode($parm)
