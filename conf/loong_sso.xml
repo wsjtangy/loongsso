@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="gbk"?>
+<loongSSO>
+    <domain>.loongsso.com</domain>      <!-- 服务器端的域名 -->
+	<server_id>1</server_id>           <!-- 服务器端ID 集群式可用 --> 
+	<server_port>7171</server_port>      <!-- 服务器端口号 -->
+
+	<mysql>
+		<host>localhost</host>   <!-- mysql主机地址 -->
+		<port>3306</port>        <!-- mysql主机端口 -->
+		<user>root</user>        <!-- mysql主机用户 -->
+		<pass>317101</pass>    <!-- mysql主机密码 -->
+		<dbname>loongsso</dbname>     <!-- mysql数据库名 -->
+	</mysql>
+	
+	<site>
+		<list>
+			<id>cellphp</id>                                                           <!-- 应用的ID 识别号 -->
+			<key>loongSSO_CELLPHP_KEY</key>                                            <!-- 数据传输的数字签名的 私钥 -->
+			<update_key>loongSSO_CELLPHP_KEY</update_key>                              <!-- 更新或删除数据的 数字签名的 私钥 -->
+			<login>http://www.xxxabc.cn:8080/callback.php?action=login</login>         <!-- 要调用的登陆页面 -->
+			<logout>http://www.xxxabc.cn:8080/callback.php?action=logout</logout>      <!-- 要调用的退出页面 -->
+			<update>http://www.xxxabc.cn:8080/callback.php?action=update</update>      <!-- 修改用户,通知的页面 -->
+			<delete>http://www.xxxabc.cn:8080/callback.php?action=delete</delete>      <!-- 删除用户,通知的页面 -->
+		</list>
+<!-- 		<list>
+			<id>新浪</id>
+			<key>sina</key>
+			<login>http://www.sina.com/login.jsp</login>
+			<logout>http://www.sina.com/logout.jsp</logout>
+		</list>
+		<list>
+			<id>TOM</id>
+			<key>tom</key>
+			<login>http://www.sina.com/login.jsp</login>
+			<logout>http://www.sina.com/logout.jsp</logout>
+		</list>
+		<list>
+			<id>新浪</id>
+			<key>sina</key>
+			<login>http://www.sina.com/login.jsp?name=fff</login>
+			<logout>http://www.sina.com/logout.jsp</logout>
+		</list> -->
+	</site>
+
+</loongSSO>
