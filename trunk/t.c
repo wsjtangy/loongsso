@@ -7,13 +7,19 @@
 #include <string.h>
 #include <stdbool.h>
 #include <sys/time.h>
+#include <mysql.h>
+
+// gcc -o t t.c -I/home/lzy/local/tokyocabinet/include -I/usr/include/mysql/ -L/usr/lib/mysql/ -L/home/lzy/local/tokyocabinet/lib -ltokyocabinet -lmysqlclient -lrt
+
 
 uint64_t ident_key();
+
+TCMAP *fetch_user_info(char *uid);
 
 unsigned int strhash(const char *str);
 
 int main(int argc, char *argv[])
-{d
+{
 	int rc;
 	char *val;
 	char str[30];
@@ -104,7 +110,8 @@ int main(int argc, char *argv[])
 
 	tchdbclose(loong_info);
 	tchdbdel(loong_info);
-
+	
+	fetch_user_info("1220582278313757000");
 	return 0;
 }
 
@@ -133,5 +140,66 @@ unsigned int strhash(const char *str)
         hash = hash * 33 + c;
     }
 	return hash == 0 ? 1 : hash;
+}
+
+
+TCMAP *fetch_user_info(char *uid)
+{
+	MYSQL *conn;
+	TCMAP *data;
+	MYSQL_RES *res; 
+	MYSQL_ROW rows; 
+	unsigned int  ind;
+	unsigned long num; 
+	int  query_len, rc;
+	char query[256] = {0};
+
+	const char *key;
+	
+//	query_len = snprintf(query, sizeof(query), "SELECT `username`, `password`, `email`, `ip`, `sex`, `reg_time`, `c_status` FROM member_%d WHERE `uid` = '%s'", (ind % TABLE_CHUNK), uid);
+
+	query_len = snprintf(query, sizeof(query), "SELECT `username`, `password`, `email`, `ip`, `sex`, `reg_time`, `c_status` FROM member WHERE `uid` = '%s'", uid);
+	conn  = mysql_init(NULL);
+    if (conn == NULL)
+    {
+        printf("mysql_init() failed (probably out of memory)\r\n");
+        return NULL;
+    }
+	if (mysql_real_connect (conn, "122.11.49.209", "qiye", "lijinxing_qiye_loongsso", "loongsso", 3306, NULL, CLIENT_MULTI_STATEMENTS) == NULL)
+    {
+        printf ("mysql_real_connect() failed\r\n");
+        mysql_close (conn);
+        return 0;
+    }
+
+	rc   = mysql_real_query(conn, query, query_len);
+	if(rc) return NULL;
+
+	res  = mysql_store_result(conn); 
+	if(res == NULL) return NULL;
+
+	num  = mysql_num_rows(res); 
+	if(num == 0)
+	{
+		mysql_free_result(res); 
+		return NULL;
+	}
+	
+	rows = mysql_fetch_row(res);
+	
+	data = tcmapnew();
+	tcmapput2(data, "username", rows[0]);
+	tcmapput2(data, "password", rows[1]);
+	tcmapput2(data, "email",    rows[2]);
+	tcmapput2(data, "ip",       rows[3]);
+	tcmapput2(data, "sex",      rows[4]);
+	tcmapput2(data, "reg_time", rows[5]);
+	tcmapput2(data, "c_status", rows[6]);
+
+	mysql_free_result(res); 
+
+	mysql_close (conn);
+
+	return data;
 }
 

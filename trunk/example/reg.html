@@ -1,10 +1,10 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"  xml:lang="zh-CN" lang="zh-CN">
 <head>
-<title>loongSSO--注册页面</title>
-<meta http-equiv="Content-Type" content="text/html; charset=gbk">
-<link href="reg.css" rel="stylesheet" type="text/css" />
-  <script language="JavaScript">
+<title>留言本 注册</title>
+<meta http-equiv="Content-Type" content="text/html; charset=gbk" />
+<link href="css/global.css" rel="stylesheet" type="text/css" />
+<script language="JavaScript">
   <!--
 	
 	var eInterval;
@@ -144,7 +144,7 @@
 				break;
 			case http_response_t.HTTP_RESPONSE_REGISTER_OK :
 				alert("注册成功");
-				window.location.href = "http://www.xxxabc.cn:8080/php.php";
+				window.location.href = "http://www.xxxabc.cn:8080/index.php";
 				break;
 			default:
 				alert("验证超时");
@@ -191,7 +191,7 @@
 		if(!rc) return false;
 
 
-		url  = "http://www.test.com/?module=register&code=" + frm.elements["code"].value + "&username=" + frm.elements["username"].value + "&password=" + frm.elements["password"].value + "&email=" + frm.elements["email"].value;
+		url  = "http://www.loongsso.com:7171/?module=register&code=" + frm.elements["code"].value + "&username=" + frm.elements["username"].value + "&password=" + frm.elements["password"].value + "&email=" + frm.elements["email"].value;
 		load_script(url);
 		
 		frm.elements["sub"].disabled = true;
@@ -208,50 +208,96 @@
   //-->
   </script>
 </head>
+<body>
 
-<body>&#8730; &#935; &#215;
-<div id="mainbodytop"></div>
-<div id="loginclss">
-<form method="post" onsubmit="return disposal();" name="loginform">
-<p class="tishi"><font color="#0033CC"><b>loongSSO注册页面</b></font></p>
-<dl class="biao">
-<dt><span>注册登陆名：
-  <input name="username" type="text" id="username" />
-</span><span class="reg1" id="sps1">3～20个合法字符(包括大小写字母、数字、下划线、中文)，一旦注册成功用户名不能修改。</span>
-</dt>
-<!-- onchange -->
-<dd>接受相关协议：
-  <input name="acctiveme" type="radio" id="acctiveme" value="yes" /> 
-  接受
-  <input type="radio" name="acctiveme" id="acctiveme" value="no" /> 
-  不接受 <a href="readgeze.html" target="_blank" class="toplink">相关协议</a> </dd>
-<dt><span>注册密码：
-  <input name="password" type="password" id="password" />
-</span><span class="reg1" id="sps2">密码区分大小写，4～20个合法字符组成，请尽量使用英文字母加数字或符号的组合密码。</span>
-</dt>
-<dt><span>重复密码：
-  <input name="pass" type="password" id="pass" />
-</span><span class="reg1" id="sps3">请再输入一遍您上面输入的密码。</span>
-</dt>
-<dt><span>电子邮件：
-  <input name="email" type="text" id="email" />
-</span><span class="reg1" id="sps4">E-mail非常重要！这是我们与您联系的首选方式，以及接收我们的服务和取回密码的途径，请务必填写真实，并确认是您最常用的电子邮件。</span>
-</dt>
-<dd><span>验 证 码：
-  <input name="code" type="text" id="code" size="6" maxlength="4" autocomplete="off" />&nbsp;&nbsp;<img style="cursor:pointer" src="http://www.test.com/?module=validate" id="codeImg" name="codeImg" alt="看不清楚?请点击刷新" onclick="this.src='http://www.test.com/?module=validate&rand='+Math.random();"/>
-  </span><span class="reg1" id="sps5">验证码不区分大小!</span><font id="mycode" style="display:none ">d</font>
-</dd>
-<dt style="text-align:center ">
-  <input type="submit" id="Submit" name="sub" value="注 册"/>
-  <input type="reset" name="Submit2" onclick="resetall()" value="重 置" />
-</dt>
-</dl>
-</form>
-</div><div id="rightme">
-<hr />
-版权所有：loongSSO<br />
-技术支持：七夜(李锦星) lijinxing@gmail.com
+<!-- 头部 -->
+<div class="top">
+	<div class="l">
+		<img src="images/logo.gif" alt="" />
+	</div>
+	<div class="top_ad r">
+
+	</div>
 </div>
+
+<!-- 导航 -->
+<div class="menu">
+	<span class="l">loong SSO 注册页面!</span>
+	<span class="r">
+		<a href="login.html">登录</a>
+		<a href="reg.html">注册</a>		
+	</span>
+</div>
+<div class="bottombg"></div>
+
+<!-- 注册信息 -->
+<div class="reg">
+
+<form method="post" onsubmit="return disposal();" name="loginform">
+
+	<div class="div_form">
+		<div class="div1 l">注册用户名：</div>
+		<div class="div2 l"><input class="div2_input" type="text" name="username" id="username" /></div>
+		<div class="div3 l">3～20个合法字符(包括大小写字母、数字、下划线、中文)，一旦注册成功用户名不能修改。</div>
+	</div>
+
+	<div class="div_form">
+		<div class="div1 l">接受相关协议：</div>
+		<div class="div2 l">
+			<label><input name="radiobutton" type="radio" value="radiobutton" checked="checked" />接受</label>&nbsp;&nbsp;
+			<label><input type="radio" name="radiobutton" value="radiobutton" />不接受</label>		
+		</div>
+		<div class="div3 l f14px"><a href="">查看协议</a></div>
+	</div>
+
+	<div class="div_form">
+		<div class="div1 l">注册密码：</div>
+		<div class="div2 l"><input class="div2_input" name="password" type="password" id="password" /></div>
+		<div class="div3 l">密码区分大小写，4～20个合法字符组成，请尽量使用英文字母加数字或符号的组合密码。</div>
+	</div>
+
+	<div class="div_form">
+		<div class="div1 l">重复密码：</div>
+		<div class="div2 l"><input class="div2_input" name="pass" type="password" id="pass" /></div>
+		<div class="div3 l">请再输入一遍您上面输入的密码。</div>
+	</div>
+
+	<div class="div_form">
+		<div class="div1 l">您的电子邮件：</div>
+		<div class="div2 l"><input class="div2_input" name="email" type="text" id="email" /></div>
+		<div class="div3 l">E-mail非常重要！这是我们与您联系的首选方式，以及接收我们的服务和取回密码的途径，请务必填写真实，并确认是您最常用的电子邮件。</div>
+	</div>
+
+	<div class="div_form">
+		<div class="div1 l">验证码：</div>
+		<div class="div4 l"><input class="div2_yzm" name="code" type="text" id="code" size="6" maxlength="4" autocomplete="off" /></div>
+		<div class="div3 l"><img style="cursor:pointer" src="http://www.cellphp.com:7171/?module=validate" id="codeImg" name="codeImg" alt="看不清楚?请点击刷新" onclick="this.src='http://www.cellphp.com:7171/?module=validate&rand='+Math.random();"/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;验证码不区分大小!</div>
+	</div>
+
+	<div class="div_form">
+		<div class="div1 l">&nbsp;</div>
+		<div class="div2 l">
+			<label><input class="div2_submit" type="submit" id="Submit" name="sub" value="注 册" /></label>
+			<label><input class="div2_submit" type="reset" name="Submit" value="重置" /></label>	
+		</div>
+		<div class="div3 l"></div>
+	</div>
+
+</form>
+
+</div>
+
+
+
+
+
+<!-- 版权 -->
+<div class="footer">
+	<p>版权所有：loongSSO</p>
+	<p>技术支持：七夜(李锦星) lijinxing@gmail.com </p>
+</div>
+
+
 
 </body>
 </html>

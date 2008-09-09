@@ -93,9 +93,11 @@ int loong_sso_register(loong_conn *conn)
 	const char *private_code;
 	unsigned char *username;
 	
+
 	uint64_t id, key;
+	unsigned int  ind;
 	int json_len, query_len, rc;
-	char json[200], query[400], code[34];
+	char json[256], query[512], code[34], tmep[30];
 	
 	struct loong_passwd info;
 
@@ -147,19 +149,33 @@ int loong_sso_register(loong_conn *conn)
 	
 	memset(code, 0, sizeof(code));
 	memset(json, 0, sizeof(json));
+	memset(tmep, 0, sizeof(tmep));
 	memset(query, 0, sizeof(query));
 	
 	
 	MD5String(password, code);
 
 	id        = ident_key();
+	
+	snprintf(tmep, sizeof(tmep), "%llu", id);
+
+	ind       = strhash(tmep);
 	json_len  = snprintf(json, sizeof(json), "id:%llu|username:%s|mail:%s|ip:%u|time:%u|", id, username, email, ip2long(conn->ip), conn->now);
-	query_len = snprintf(query, sizeof(query), "INSERT INTO `member` (`uid`, `username`, `password`, `email`, `ip`, `reg_time`, `c_status`)VALUES('%llu', '%s', '%s', '%s', %u, %u, 1);", id, username, code, email, ip2long(conn->ip), conn->now);
+	query_len = snprintf(query, sizeof(query), "INSERT INTO `member_%d` (`uid`, `username`, `password`, `email`, `ip`, `reg_time`, `c_status`)VALUES('%llu', '%s', '%s', '%s', %u, %u, 1);", (ind % TABLE_CHUNK), id, username, code, email, ip2long(conn->ip), conn->now);
 	
 
 	info.id           = id;
 	info.loong_status = 1;
 	memcpy(info.pass, code, sizeof(info.pass));
+
+	rc = mysql_real_query(dbh, query, query_len);
+	if(rc)
+	{
+		//数据库查询错误
+		//printf("Error making query: %s\n", mysql_error(dbh));
+		send_response(conn, HTTP_RESPONSE_DB_ERROR, json);
+		return 1;
+	}
 
 	if(!tchdbput(loong_user, username, strlen(username), (char *)&(info), sizeof(struct loong_passwd)))
 	{
@@ -175,12 +191,6 @@ int loong_sso_register(loong_conn *conn)
 	{
 		rc = tchdbecode(loong_info);
 		printf("loong_info error: %s\r\n", tchdberrmsg(rc));
-	}
-	
-	rc = mysql_real_query(dbh, query, query_len);
-	if(rc)
-	{
-		printf("Error making query: %s\n", mysql_error(dbh));
 	}
 
 	send_response(conn, HTTP_RESPONSE_REGISTER_OK, json);
@@ -318,12 +328,10 @@ int loong_sso_update(loong_conn *conn)
 // /?module=delete
 int loong_sso_delete(loong_conn *conn)
 {
-	char code[35];
-	char str[100];
-	char query[128];
-	unsigned int ind;
-	my_ulonglong rows;
-	int  i, query_len, rc;
+	int   i;
+	TCMAP *data;
+	char  code[35];
+	char  str[100];
 	struct loong_site *recs;
 	const char *mode, *uid, *sign;
 	
@@ -350,37 +358,31 @@ int loong_sso_delete(loong_conn *conn)
 
 			if(strcasecmp(sign, code) == 0)
 			{
-				ind       = strhash(uid);
-				query_len = snprintf(query, sizeof(query), "DELETE FROM member_%d WHERE uid = '%s'", (ind % TABLE_CHUNK), uid);
-				rc = mysql_real_query(dbh, query, query_len);
-				if(rc)
+				data = fetch_user_info(uid);
+				if(data != NULL)
 				{
-					printf("Error making query: %s\n", mysql_error(dbh));
-					send_response(conn, HTTP_RESPONSE_SIGN_NO, NULL);
-					return 1;
+					//在数据库里找到数据,并删除数据
+					delete_user_info(data);
+					send_response(conn, HTTP_RESPONSE_DELETE_OK, NULL);
 				}
-
-				rows = mysql_affected_rows(conn);
+				else
+				{
+					//在数据库里没找到相应的uid数据
+					send_response(conn, HTTP_RESPONSE_USERNAME_NOT_EXISTS, NULL);
+				}
 				
-				if(rows == 0)
-				{
-					//删除用户信息
-					tchdbout(loong_info, (char *)&(id), sizeof(uint64_t));
-					tchdbout(loong_info, (char *)&(id), sizeof(uint64_t));
-					tchdbout(loong_info, (char *)&(id), sizeof(uint64_t));
-				}
-
-				send_response(conn, HTTP_RESPONSE_DELETE_OK, NULL);
 				return 1;
 			}
 			else
 			{
+				//数字签名匹配不上
 				send_response(conn, HTTP_RESPONSE_SIGN_NO, NULL);
 				return 1;
 			}
 		}
 	}
-
+	
+	//在loong SSO的 站点列表 没找到相应的站点ID
 	send_response(conn, HTTP_RESPONSE_USERNAME_NOT_EXISTS, NULL);
 	return 1;
 }
@@ -394,25 +396,4 @@ int loong_sso_logout(loong_conn *conn)
 	return 1;
 }
 
-TCMAP *fetch_user_info(char *uid)
-{
-	TCMAP *data;
-	MYSQL_RES *res; 
-	unsigned int  ind;
-	unsigned long rows; 
-	int  query_len, rc;
-	char query[256] = {0};
-	
-	ind       = strhash(uid);
-	query_len = snprintf(query, sizeof(query), "SELECT `username`, `password`, `email`, `ip`, `sex`, `reg_time`, `c_status` FROM member_%d WHERE `uid` = '%s'", (ind % TABLE_CHUNK), uid);
-	rc        = mysql_real_query(dbh, query, query_len);
-	if(rc) return NULL;
 
-	res       = mysql_store_result(dbh); 
-	if(res == NULL) return NULL;
-
-	rows      = mysql_num_rows(res); 
-	if(num_rows == 0) return NULL;
-
-	mysql_free_result(res); 
-}
