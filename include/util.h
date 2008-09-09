@@ -28,6 +28,12 @@ void ident_value(unsigned char *result);
 
 int MD5String(char *str,char *hex_output);
 
+int delete_user_info(TCMAP *data);
+
+int update_user_info(TCMAP *data);
+
+TCMAP *fetch_user_info(const char *uid);
+
 //·¢ËÍ½á¹û
 void send_response(loong_conn *conn, http_response_t cmd, char *json);
 

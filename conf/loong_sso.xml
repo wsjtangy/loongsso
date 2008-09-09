@@ -8,7 +8,7 @@
 		<host>localhost</host>   <!-- mysql主机地址 -->
 		<port>3306</port>        <!-- mysql主机端口 -->
 		<user>root</user>        <!-- mysql主机用户 -->
-		<pass>317101</pass>    <!-- mysql主机密码 -->
+		<pass>ad4all111111</pass>    <!-- mysql主机密码 -->
 		<dbname>loongsso</dbname>     <!-- mysql数据库名 -->
 	</mysql>
 	

@@ -405,3 +405,86 @@ unsigned int strhash(const char *str)
 	return hash == 0 ? 1 : hash;
 }
 
+TCMAP *fetch_user_info(const char *uid)
+{
+	TCMAP *data;
+	MYSQL_RES *res; 
+	MYSQL_ROW rows; 
+	unsigned int  ind;
+	unsigned long num; 
+	int  query_len, rc;
+	char query[256] = {0};
+
+	const char *key;
+	
+	query_len = snprintf(query, sizeof(query), "SELECT `username`, `password`, `email`, `ip`, `sex`, `reg_time`, `c_status` FROM member_%d WHERE `uid` = '%s'", (ind % TABLE_CHUNK), uid);
+
+	rc   = mysql_real_query(dbh, query, query_len);
+	if(rc) return NULL;
+
+	res  = mysql_store_result(dbh); 
+	if(res == NULL) return NULL;
+
+	num  = mysql_num_rows(res); 
+	if(num == 0)
+	{
+		mysql_free_result(res); 
+		return NULL;
+	}
+	
+	rows = mysql_fetch_row(res);
+	
+	data = tcmapnew();
+	
+	tcmapput2(data, "uid",      uid);
+	tcmapput2(data, "username", rows[0]);
+	tcmapput2(data, "password", rows[1]);
+	tcmapput2(data, "email",    rows[2]);
+	tcmapput2(data, "ip",       rows[3]);
+	tcmapput2(data, "sex",      rows[4]);
+	tcmapput2(data, "reg_time", rows[5]);
+	tcmapput2(data, "c_status", rows[6]);
+
+	mysql_free_result(res); 
+
+	return data;
+}
+
+//更新用户数据
+int update_user_info(TCMAP *data)
+{
+}
+
+//删除用户数据
+int delete_user_info(TCMAP *data)
+{
+	uint64_t id;
+	char query[128];
+	unsigned int  ind;
+	int  query_len, rc;
+	const char *username, *email, *uid;
+	
+	memset(&query, 0, sizeof(query));
+	uid      = tcmapget2(data, "uid");
+	email    = tcmapget2(data, "email");
+	username = tcmapget2(data, "username");
+	
+	ind       = strhash(uid);
+	id        = strtoull(uid, 0, 10);
+	query_len = snprintf(query, sizeof(query), "DELETE FROM member_%d WHERE `uid` = '%s'", (ind % TABLE_CHUNK), uid);
+	rc        = mysql_real_query(dbh, query, query_len);
+	if(rc)
+	{
+		//printf("Error making query: %s\n", mysql_error(dbh));
+		return 0;
+	}
+
+	//删除缓存文件的用户信息
+	tchdbout(loong_user, username, strlen(username));
+	tchdbout(loong_mail, email, strlen(email));
+	tchdbout(loong_info, (char *)&(id), sizeof(uint64_t));
+
+	tcmapdel(data);
+	return 1;
+}
+
