@@ -144,7 +144,7 @@ int loong_sso_register(loong_conn *conn)
 		return 0;
 	}
 	
-	//注册成功
+	//注册成功,在hash表里面删除 验证码数据
 	hash_remove(codepool, conn->code);
 	
 	memset(code, 0, sizeof(code));
@@ -323,15 +323,19 @@ int loong_sso_update(loong_conn *conn)
 	int   i;
 	TCMAP *data;
 	char  code[35];
-	char  str[100];
+	char  str[300];
 	struct loong_site *recs;
-	const char *mode, *uid, *sign;
+	const char *mode, *uid, *sign, *username, *email, *password, *date;
 	
-	uid  = tcmapget2(conn->recs, "uid");
-	mode = tcmapget2(conn->recs, "mode");
-	sign = tcmapget2(conn->recs, "sign");
+	uid      = tcmapget2(conn->recs, "uid");
+	mode     = tcmapget2(conn->recs, "mode");
+	sign     = tcmapget2(conn->recs, "sign");
+	date     = tcmapget2(conn->recs, "date");
+	email    = tcmapget2(conn->recs, "email");
+	username = tcmapget2(conn->recs, "username");
+	password = tcmapget2(conn->recs, "password");
 
-	if(uid == NULL || mode == NULL || sign == NULL)
+	if(uid == NULL || mode == NULL || sign == NULL || email == NULL || username == NULL || password == NULL || date == NULL)
 	{
 		send_response(conn, HTTP_RESPONSE_VARIABLE_ERROR, NULL);
 		return 0;
@@ -345,7 +349,7 @@ int loong_sso_update(loong_conn *conn)
 			memset(&str, 0, sizeof(str));
 			memset(&code, 0, sizeof(code));
 			
-			snprintf(str, sizeof(str), "%s|%s", recs[i].update_key, uid);
+			snprintf(str, sizeof(str), "%s|%s|%s|%s|%s|%s", recs[i].update_key, uid, username, password, email, date);
 			MD5String(str, code);
 			
 			if(strcasecmp(sign, code) == 0)
@@ -353,9 +357,22 @@ int loong_sso_update(loong_conn *conn)
 				data = fetch_user_info(uid);
 				if(data != NULL)
 				{
-					//在数据库里找到数据,并删除数据
-					delete_user_info(data);
-					send_response(conn, HTTP_RESPONSE_DELETE_OK, (char *)uid);
+					//在数据库里找到数据,并更新数据
+					memset(&str, 0, sizeof(str));
+					memset(&code, 0, sizeof(code));
+					
+					//为回调参数生成数字签名
+					snprintf(str, sizeof(str), "%s|%s|%s|%u", uid, username, email, conn->now);
+					MD5String(str, code);
+					
+					//生成回调的参数
+					memset(&str, 0, sizeof(str));
+					snprintf(str, sizeof(str), "uid=%s&username=%s&email=%s&date=%u&sign=%s",  uid, username, email, conn->now, code);
+					
+					//tcmapclear(data);
+
+					update_user_info(data);
+					send_response(conn, HTTP_RESPONSE_UPDATE_OK, str);
 				}
 				else
 				{

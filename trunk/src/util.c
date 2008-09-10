@@ -47,39 +47,49 @@ int is_password(char *str)
 
 	for(i=0; i<len; i++)
 	{
-		if(!isalnum(str[i])) return 0;
+		if(!isalnum(*(str+i))) return 0;
 	}
 	return 1;
 }
 
-int is_username(unsigned char *str)
+//只包含英文字母和数字的用户名
+bool is_alpha_username(const char *str)
 {
-	int len;
-	unsigned char *temp = str;
+	int len, i;
+
+	len = strlen(str);
+	for(i=0; i<len; i++)
+	{
+		if(!isalnum(*(str+i))) return false;
+	}
+
+	return true;
+}
+
+//只包含英文字母、数字、中文的用户名
+bool is_ch_username(unsigned char *str)
+{
+	int len, i;
 	
 	len = strlen(str);
-
-	while(*temp != '\0')
+	if(len < 3 || len > 20) return false;
+	
+	for(i=0; i<len; i++)
 	{
-		if(*temp >= 0xa1)
+		if(*(str+i) >= 0x80)
 		{
-			temp++;
+			i++;
 		}
-		else if(!isalnum(*temp))
+		else if(!isalnum(*(str+i)))
 		{
-			return 0;
+			return false;
 		}
-		temp++;
 	}
 
-	if(len < 3 || len > 20)
-	{
-		return 0;
-	}
-	return 1;
+	return true;
 }
 
-int is_mail(char *str)
+bool is_mail(char *str)
 {
 	int len, i;
 	char *match;
@@ -93,7 +103,7 @@ int is_mail(char *str)
 	{
 		if(!isalnum(match[i]) && match[i] != '.' && match[i] != '_' && match[i] != '-')
 		{
-			return 0;
+			return false;
 		}
 	}
 	
@@ -101,7 +111,7 @@ int is_mail(char *str)
 	if(len > 29)
 	{
 		//email地址 不能超出30个字符
-		return 0;
+		return false;
 	}
 	
 	for(i=0; i<len; i++)
@@ -109,10 +119,10 @@ int is_mail(char *str)
 		if(str[i] == '@') break;
 		if(!isalnum(str[i]) && str[i] != '.' && str[i] != '_' && str[i] != '-')
 		{
-			return 0;
+			return false;
 		}
 	}
-	return 1;
+	return true;
 }
 
 
@@ -456,7 +466,7 @@ TCMAP *fetch_user_info(const char *uid)
 	
 	rows = mysql_fetch_row(res);
 	
-	data = tcmapnew();
+	data = tcmapnew2(15);
 	
 	tcmapput2(data, "uid",      uid);
 	tcmapput2(data, "username", rows[0]);
@@ -473,16 +483,80 @@ TCMAP *fetch_user_info(const char *uid)
 }
 
 //更新用户数据
-int update_user_info(TCMAP *data)
+http_response_t update_user_info(TCMAP *data)
 {
+	uint64_t id;
+	char code[34];
+	char data[256];
+	unsigned int ind;
+	my_ulonglong rows;
+	int  data_len, rc;
+	struct loong_passwd info;
+	const char *password, *username, *email, *uid, *now, *ip;
+	
+	memset(&sign, 0, sizeof(sign));
+	memset(&data, 0, sizeof(data));
+	
+	uid       = tcmapget2(data, "uid");
+	email     = tcmapget2(data, "email");
+	username  = tcmapget2(data, "username");
+	password  = tcmapget2(data, "password");
+
+	ip        = tcmapget2(data, "ip");
+	now       = tcmapget2(data, "reg_time");
+
+	
+	MD5String(password, code);
+
+	ind       = strhash(uid);
+	id        = strtoull(uid, 0, 10);
+	data_len  = snprintf(data, sizeof(data), "UPDATE SET `username` = '%s', `password` = '%s', `email` = '%s' FROM member_%u WHERE `uid` = '%s'", username, code, email, (ind % TABLE_CHUNK), uid);
+	rc        = mysql_real_query(dbh, data, data_len);
+	if(rc)
+	{
+		//printf("Error making query: %s\n", mysql_error(dbh));
+		return HTTP_RESPONSE_DB_ERROR;
+	}
+	//没更新到指定的uid,就直接返回了
+	rows = mysql_affected_rows(dbh);
+	if(rows < 1) return HTTP_RESPONSE_USERNAME_NOT_EXISTS;
+	
+	memset(&data, 0, sizeof(data));
+	data_len  = snprintf(data, sizeof(data), "id:%llu|username:%s|mail:%s|ip:%u|time:%u|", id, username, email, ip, now);
+	
+	info.id           = id;
+	info.loong_status = 1;
+	memcpy(info.pass, code, sizeof(info.pass));
+
+	if(!tchdbput(loong_user, username, strlen(username), (char *)&(info), sizeof(struct loong_passwd)))
+	{
+		rc = tchdbecode(loong_user);
+		//printf("loong_user error: %s\r\n", tchdberrmsg(rc));
+		return HTTP_RESPONSE_CACHE_ERROR;
+	}
+	if(!tchdbput(loong_mail, email, strlen(email), (char *)&(info), sizeof(struct loong_passwd)))
+	{
+		rc = tchdbecode(loong_mail);
+		//printf("loong_mail error: %s\r\n", tchdberrmsg(rc));
+		return HTTP_RESPONSE_CACHE_ERROR;
+	}
+	if(!tchdbput(loong_info, (char *)&(id), sizeof(uint64_t), data, data_len))
+	{
+		rc = tchdbecode(loong_info);
+		//printf("loong_info error: %s\r\n", tchdberrmsg(rc));
+		return HTTP_RESPONSE_CACHE_ERROR;
+	}
+
+	return HTTP_RESPONSE_UPDATE_OK;
 }
 
 //删除用户数据
-int delete_user_info(TCMAP *data)
+bool delete_user_info(TCMAP *data)
 {
 	uint64_t id;
 	char query[128];
-	unsigned int  ind;
+	unsigned int ind;
+	my_ulonglong rows;
 	int  query_len, rc;
 	const char *username, *email, *uid;
 	
@@ -498,8 +572,12 @@ int delete_user_info(TCMAP *data)
 	if(rc)
 	{
 		//printf("Error making query: %s\n", mysql_error(dbh));
-		return 0;
+		return false;
 	}
+	
+	//没删除到指定的uid,就直接返回了
+	rows = mysql_affected_rows(dbh);
+	if(rows < 1) return false;
 
 	//删除缓存文件的用户信息
 	tchdbout(loong_user, username, strlen(username));
@@ -507,6 +585,6 @@ int delete_user_info(TCMAP *data)
 	tchdbout(loong_info, (char *)&(id), sizeof(uint64_t));
 
 	tcmapdel(data);
-	return 1;
+	return true;
 }
 
