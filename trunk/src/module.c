@@ -320,7 +320,62 @@ int loong_sso_check(loong_conn *conn)
 // /?module=update
 int loong_sso_update(loong_conn *conn)
 {
-	send_response(conn, HTTP_RESPONSE_LOGOUT_OK, NULL);
+	int   i;
+	TCMAP *data;
+	char  code[35];
+	char  str[100];
+	struct loong_site *recs;
+	const char *mode, *uid, *sign;
+	
+	uid  = tcmapget2(conn->recs, "uid");
+	mode = tcmapget2(conn->recs, "mode");
+	sign = tcmapget2(conn->recs, "sign");
+
+	if(uid == NULL || mode == NULL || sign == NULL)
+	{
+		send_response(conn, HTTP_RESPONSE_VARIABLE_ERROR, NULL);
+		return 0;
+	}
+	
+	recs = conf.site;
+	for(i=0; i<conf.num; i++)
+	{
+		if(strcasecmp(mode, recs[i].id) == 0)
+		{
+			memset(&str, 0, sizeof(str));
+			memset(&code, 0, sizeof(code));
+			
+			snprintf(str, sizeof(str), "%s|%s", recs[i].update_key, uid);
+			MD5String(str, code);
+			
+			if(strcasecmp(sign, code) == 0)
+			{
+				data = fetch_user_info(uid);
+				if(data != NULL)
+				{
+					//在数据库里找到数据,并删除数据
+					delete_user_info(data);
+					send_response(conn, HTTP_RESPONSE_DELETE_OK, (char *)uid);
+				}
+				else
+				{
+					//在数据库里没找到相应的uid数据
+					send_response(conn, HTTP_RESPONSE_USERNAME_NOT_EXISTS, NULL);
+				}
+				
+				return 1;
+			}
+			else
+			{
+				//数字签名匹配不上
+				send_response(conn, HTTP_RESPONSE_SIGN_NO, NULL);
+				return 1;
+			}
+		}
+	}
+	
+	//在loong SSO的 站点列表 没找到相应的站点ID
+	send_response(conn, HTTP_RESPONSE_SITE_NOT_EXISTS, NULL);
 	return 1;
 }
 
@@ -341,7 +396,7 @@ int loong_sso_delete(loong_conn *conn)
 
 	if(uid == NULL || mode == NULL || sign == NULL)
 	{
-		send_response(conn, HTTP_RESPONSE_DELETE_NO, NULL);
+		send_response(conn, HTTP_RESPONSE_VARIABLE_ERROR, NULL);
 		return 0;
 	}
 	
@@ -355,7 +410,7 @@ int loong_sso_delete(loong_conn *conn)
 			
 			snprintf(str, sizeof(str), "%s|%s", recs[i].update_key, uid);
 			MD5String(str, code);
-
+			
 			if(strcasecmp(sign, code) == 0)
 			{
 				data = fetch_user_info(uid);
@@ -363,7 +418,7 @@ int loong_sso_delete(loong_conn *conn)
 				{
 					//在数据库里找到数据,并删除数据
 					delete_user_info(data);
-					send_response(conn, HTTP_RESPONSE_DELETE_OK, NULL);
+					send_response(conn, HTTP_RESPONSE_DELETE_OK, (char *)uid);
 				}
 				else
 				{
@@ -383,7 +438,7 @@ int loong_sso_delete(loong_conn *conn)
 	}
 	
 	//在loong SSO的 站点列表 没找到相应的站点ID
-	send_response(conn, HTTP_RESPONSE_USERNAME_NOT_EXISTS, NULL);
+	send_response(conn, HTTP_RESPONSE_SITE_NOT_EXISTS, NULL);
 	return 1;
 }
 

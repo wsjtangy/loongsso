@@ -170,6 +170,7 @@ unsigned int ip2long(char *s)
 
 void send_response(loong_conn *conn, http_response_t cmd, char *json)
 {
+	char c;
 	char now[15];
 	char sign[34];
 	char url[500];
@@ -259,7 +260,11 @@ void send_response(loong_conn *conn, http_response_t cmd, char *json)
 					es_append(res, recs[i].logout);
 					break;
 				case HTTP_RESPONSE_DELETE_OK:
+					c = (strchr(recs[i].del, '?') == NULL) ? '?' : '&';
 					es_append(res, recs[i].del);
+					es_appendchar(res, c);
+					es_append(res, "uid=");
+					es_append(res, json);
 					break;
 				case HTTP_RESPONSE_UPDATE_OK:
 					es_append(res, recs[i].update);
