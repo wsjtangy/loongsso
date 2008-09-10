@@ -324,6 +324,7 @@ int loong_sso_update(loong_conn *conn)
 	TCMAP *data;
 	char  code[35];
 	char  str[300];
+	http_response_t cmd;
 	struct loong_site *recs;
 	const char *mode, *uid, *sign, *username, *email, *password, *date;
 	
@@ -369,10 +370,13 @@ int loong_sso_update(loong_conn *conn)
 					memset(&str, 0, sizeof(str));
 					snprintf(str, sizeof(str), "uid=%s&username=%s&email=%s&date=%u&sign=%s",  uid, username, email, conn->now, code);
 					
-					//tcmapclear(data);
+					//用最新的 覆盖旧有的数据
+					tcmapput2(data, "username", username);
+					tcmapput2(data, "password", password]);
+					tcmapput2(data, "email",    email);
 
-					update_user_info(data);
-					send_response(conn, HTTP_RESPONSE_UPDATE_OK, str);
+					cmd = update_user_info(data);
+					send_response(conn, cmd, str);
 				}
 				else
 				{
@@ -404,6 +408,7 @@ int loong_sso_delete(loong_conn *conn)
 	TCMAP *data;
 	char  code[35];
 	char  str[100];
+	http_response_t cmd;
 	struct loong_site *recs;
 	const char *mode, *uid, *sign;
 	
@@ -434,8 +439,8 @@ int loong_sso_delete(loong_conn *conn)
 				if(data != NULL)
 				{
 					//在数据库里找到数据,并删除数据
-					delete_user_info(data);
-					send_response(conn, HTTP_RESPONSE_DELETE_OK, (char *)uid);
+					cmd = delete_user_info(data);
+					send_response(conn, cmd, (char *)uid);
 				}
 				else
 				{

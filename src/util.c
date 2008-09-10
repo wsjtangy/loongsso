@@ -551,7 +551,7 @@ http_response_t update_user_info(TCMAP *data)
 }
 
 //删除用户数据
-bool delete_user_info(TCMAP *data)
+http_response_t delete_user_info(TCMAP *data)
 {
 	uint64_t id;
 	char query[128];
@@ -572,12 +572,12 @@ bool delete_user_info(TCMAP *data)
 	if(rc)
 	{
 		//printf("Error making query: %s\n", mysql_error(dbh));
-		return false;
+		return HTTP_RESPONSE_DB_ERROR;
 	}
 	
 	//没删除到指定的uid,就直接返回了
 	rows = mysql_affected_rows(dbh);
-	if(rows < 1) return false;
+	if(rows < 1) return HTTP_RESPONSE_USERNAME_NOT_EXISTS;
 
 	//删除缓存文件的用户信息
 	tchdbout(loong_user, username, strlen(username));
@@ -585,6 +585,6 @@ bool delete_user_info(TCMAP *data)
 	tchdbout(loong_info, (char *)&(id), sizeof(uint64_t));
 
 	tcmapdel(data);
-	return true;
+	return HTTP_RESPONSE_DELETE_OK;
 }
 
