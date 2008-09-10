@@ -199,6 +199,7 @@ int main(int argc, char **argv)
     int n, i, rc, sql_len;
 	struct eph_comm *conn;
     struct sockaddr_in addr;
+	my_bool reconnect = 0;
 	
 
 	//解析配置信息
@@ -211,6 +212,9 @@ int main(int argc, char **argv)
         printf ("mysql_init() failed (probably out of memory)\r\n");
         return 0;
     }
+	//设置MySQL自动重连
+	mysql_options(dbh, MYSQL_OPT_RECONNECT, &reconnect);
+
 
 	//CLIENT_MULTI_STATEMENTS
 	if (mysql_real_connect (dbh, conf.host, conf.user, conf.pass, conf.dbname, conf.port, NULL, CLIENT_MULTI_STATEMENTS) == NULL)
