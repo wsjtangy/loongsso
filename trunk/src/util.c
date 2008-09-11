@@ -35,21 +35,18 @@ int MD5String(char *str, char *hex_output)
 }
 
 
-int is_password(char *str)
+bool is_password(const char *str)
 {
 	int len, i;
 
 	len = strlen(str);
-	if(len < 6 || len > 20)
-	{
-		return 0;
-	}
+	if(len < 6 || len > 20) return false;
 
 	for(i=0; i<len; i++)
 	{
-		if(!isalnum(*(str+i))) return 0;
+		if(!isalnum(*(str+i))) return false;
 	}
-	return 1;
+	return true;
 }
 
 //只包含英文字母和数字的用户名
@@ -89,7 +86,7 @@ bool is_ch_username(unsigned char *str)
 	return true;
 }
 
-bool is_mail(char *str)
+bool is_mail(const char *str)
 {
 	int len, i;
 	char *match;
@@ -277,7 +274,10 @@ void send_response(loong_conn *conn, http_response_t cmd, char *json)
 					es_append(res, json);
 					break;
 				case HTTP_RESPONSE_UPDATE_OK:
+					c = (strchr(recs[i].update, '?') == NULL) ? '?' : '&';
 					es_append(res, recs[i].update);
+					es_appendchar(res, c);
+					es_append(res, json);
 					break;
 			}
 
@@ -312,34 +312,49 @@ void send_response(loong_conn *conn, http_response_t cmd, char *json)
 	}
 }
 
-int is_mail_exists(char *str)
+bool is_mail_exists(const char *str)
 {
 	char *val;
-
-	if(!(val = tchdbget2(loong_mail, str)))
+	
+	val = tchdbget2(loong_mail, str);
+	if(val == NULL)
 	{
-		//没找到
-		return 1;
+		return false;
 	}
-
+	
 	free(val);
-	return 0;
+	return true;
 }
 
-int is_user_exists(char *str)
+bool is_user_exists(const char *str)
 {
 	char *val;
-
-	if(!(val = tchdbget2(loong_user, str)))
-	{
-		//没找到
-		return 1;
-	}
-
-    free(val);
 	
-	//找到用户名
-	return 0;
+	val = tchdbget2(loong_user, str);
+	if(val == NULL)
+	{
+		return false;
+	}
+	
+	free(val);
+	return true;
+}
+
+bool is_timeout(time_t t1, int minute)
+{
+	int n;
+	time_t now;
+
+	now = time((time_t*)0);
+	n   = (int)difftime(now, t1);
+	n  /= 60;   //转换为分钟
+	
+	if(n >= minute)
+	{
+		//超时,返回假
+		return false;
+	}
+	return true;
 }
 
 unsigned long urlencode(unsigned char   *csource, unsigned char   *cbuffer, unsigned long   lbuffersize)
@@ -487,14 +502,14 @@ http_response_t update_user_info(TCMAP *data)
 {
 	uint64_t id;
 	char code[34];
-	char data[256];
+	char parm[256];
 	unsigned int ind;
 	my_ulonglong rows;
-	int  data_len, rc;
+	int  parm_len, rc;
 	struct loong_passwd info;
 	const char *password, *username, *email, *uid, *now, *ip;
 	
-	memset(&sign, 0, sizeof(sign));
+	memset(&code, 0, sizeof(code));
 	memset(&data, 0, sizeof(data));
 	
 	uid       = tcmapget2(data, "uid");
@@ -506,12 +521,12 @@ http_response_t update_user_info(TCMAP *data)
 	now       = tcmapget2(data, "reg_time");
 
 	
-	MD5String(password, code);
+	MD5String((char *)password, code);
 
 	ind       = strhash(uid);
 	id        = strtoull(uid, 0, 10);
-	data_len  = snprintf(data, sizeof(data), "UPDATE SET `username` = '%s', `password` = '%s', `email` = '%s' FROM member_%u WHERE `uid` = '%s'", username, code, email, (ind % TABLE_CHUNK), uid);
-	rc        = mysql_real_query(dbh, data, data_len);
+	parm_len  = snprintf(parm, sizeof(parm), "UPDATE SET `username` = '%s', `password` = '%s', `email` = '%s' FROM member_%u WHERE `uid` = '%s'", username, code, email, (ind % TABLE_CHUNK), uid);
+	rc        = mysql_real_query(dbh, parm, parm_len);
 	if(rc)
 	{
 		//printf("Error making query: %s\n", mysql_error(dbh));
@@ -521,8 +536,8 @@ http_response_t update_user_info(TCMAP *data)
 	rows = mysql_affected_rows(dbh);
 	if(rows < 1) return HTTP_RESPONSE_USERNAME_NOT_EXISTS;
 	
-	memset(&data, 0, sizeof(data));
-	data_len  = snprintf(data, sizeof(data), "id:%llu|username:%s|mail:%s|ip:%u|time:%u|", id, username, email, ip, now);
+	memset(&parm, 0, sizeof(parm));
+	parm_len  = snprintf(parm, sizeof(parm), "id:%llu|username:%s|mail:%s|ip:%u|time:%u|", id, username, email, ip, now);
 	
 	info.id           = id;
 	info.loong_status = 1;
@@ -540,7 +555,7 @@ http_response_t update_user_info(TCMAP *data)
 		//printf("loong_mail error: %s\r\n", tchdberrmsg(rc));
 		return HTTP_RESPONSE_CACHE_ERROR;
 	}
-	if(!tchdbput(loong_info, (char *)&(id), sizeof(uint64_t), data, data_len))
+	if(!tchdbput(loong_info, (char *)&(id), sizeof(uint64_t), parm, parm_len))
 	{
 		rc = tchdbecode(loong_info);
 		//printf("loong_info error: %s\r\n", tchdberrmsg(rc));

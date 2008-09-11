@@ -64,6 +64,38 @@ int main(int argc, char *argv[])
 		printf("loong_user error: %s\r\n", tchdberrmsg(rc));
 	}
 
+	val = tchdbget2(loong_info, username);
+
+	if(val == NULL)
+	{
+		printf("没找到\r\n");
+	}
+	else
+	{
+		printf("val = %s\r\n", val);
+		free(val);
+	}
+
+	if(!tchdbput(loong_info, username, strlen(username), "李锦星", strlen("李锦星")))
+	{
+		rc = tchdbecode(loong_info);
+		printf("loong_user error: %s\r\n", tchdberrmsg(rc));
+	}
+
+
+	val = tchdbget2(loong_info, username);
+
+	if(val == NULL)
+	{
+		printf("没找到\r\n");
+	}
+	else
+	{
+		printf("val = %s\r\n", val);
+		free(val);
+	}
+
+/*
 	ret = tchdbout(loong_info, (char *)&(id), sizeof(uint64_t));
 	if(ret)
 	{
@@ -108,10 +140,11 @@ int main(int argc, char *argv[])
 		free(val);
 	}
 
+*/
 	tchdbclose(loong_info);
 	tchdbdel(loong_info);
 	
-	fetch_user_info("1220582278313757000");
+//	fetch_user_info("1220582278313757000");
 	return 0;
 }
 
@@ -143,6 +176,7 @@ unsigned int strhash(const char *str)
 }
 
 
+/*
 TCMAP *fetch_user_info(char *uid)
 {
 	MYSQL *conn;
@@ -202,4 +236,4 @@ TCMAP *fetch_user_info(char *uid)
 
 	return data;
 }
-
+*/

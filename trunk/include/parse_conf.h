@@ -19,17 +19,17 @@ struct loong_site
 
 struct loong_config
 {
+	size_t  timeout;
 	u_short server_id;
 	u_short server_port;
 
 	//mysql 相关参数
-	size_t port;       //mysql的端口
-	size_t chunk;      //分表的个数
-	char   host[30];   //mysql的地址
-	char   user[30];   //mysql的用户名称
-	char   pass[30];   //mysql的密码
-	char   dbname[30]; //mysql的数据库名称
-	char   domain[30]; //loong SSO domain
+	size_t port;           //mysql的端口
+	char   host[30];       //mysql的地址
+	char   user[30];       //mysql的用户名称
+	char   pass[30];       //mysql的密码
+	char   dbname[30];     //mysql的数据库名称
+	char   domain[30];     //loong SSO domain
 
 	//SSO 应用的客户端
 
