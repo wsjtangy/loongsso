@@ -349,7 +349,8 @@ bool is_timeout(time_t t1, int minute)
 	n   = (int)difftime(now, t1);
 	n  /= 60;   //转换为分钟
 	
-	if(n >= minute)
+//	printf("n = %d\r\n", n, );
+	if(n > minute)
 	{
 		//超时,返回假
 		return false;
@@ -510,7 +511,8 @@ http_response_t update_user_info(TCMAP *data)
 	const char *password, *username, *email, *uid, *now, *ip;
 	
 	memset(&code, 0, sizeof(code));
-	memset(&data, 0, sizeof(data));
+	memset(&parm, 0, sizeof(parm));
+	
 	
 	uid       = tcmapget2(data, "uid");
 	email     = tcmapget2(data, "email");
@@ -525,7 +527,7 @@ http_response_t update_user_info(TCMAP *data)
 
 	ind       = strhash(uid);
 	id        = strtoull(uid, 0, 10);
-	parm_len  = snprintf(parm, sizeof(parm), "UPDATE SET `username` = '%s', `password` = '%s', `email` = '%s' FROM member_%u WHERE `uid` = '%s'", username, code, email, (ind % TABLE_CHUNK), uid);
+	parm_len  = snprintf(parm, sizeof(parm), "UPDATE member_%u SET `username` = '%s', `password` = '%s', `email` = '%s' WHERE `uid` = '%s'", (ind % TABLE_CHUNK), username, code, email, uid);
 	rc        = mysql_real_query(dbh, parm, parm_len);
 	if(rc)
 	{
@@ -562,6 +564,7 @@ http_response_t update_user_info(TCMAP *data)
 		return HTTP_RESPONSE_CACHE_ERROR;
 	}
 
+	tcmapdel(data);
 	return HTTP_RESPONSE_UPDATE_OK;
 }
 

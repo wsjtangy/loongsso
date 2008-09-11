@@ -328,27 +328,35 @@ int loong_sso_check(loong_conn *conn)
 int loong_sso_update(loong_conn *conn)
 {
 	int   i;
+	time_t sec;
 	TCMAP *data;
 	char  code[35];
 	char  str[300];
 	http_response_t cmd;
 	struct loong_site *recs;
-	const char *mode, *uid, *sign, *username, *email, *password, *date;
+	const char *mode, *uid, *sign, *username, *email, *password, *now;
 	
+	now      = tcmapget2(conn->recs, "now");
 	uid      = tcmapget2(conn->recs, "uid");
 	mode     = tcmapget2(conn->recs, "mode");
 	sign     = tcmapget2(conn->recs, "sign");
-	date     = tcmapget2(conn->recs, "date");
 	email    = tcmapget2(conn->recs, "email");
 	username = tcmapget2(conn->recs, "username");
 	password = tcmapget2(conn->recs, "password");
 
-	if(uid == NULL || mode == NULL || sign == NULL || email == NULL || username == NULL || password == NULL || date == NULL)
+	if(uid == NULL || mode == NULL || sign == NULL || email == NULL || username == NULL || password == NULL || now == NULL)
 	{
 		send_response(conn, HTTP_RESPONSE_VARIABLE_ERROR, NULL);
 		return 0;
 	}
-	
+	sec = (time_t)strtol(now, 0, 10);
+	i   = is_timeout(sec, conf.timeout);
+	if(!i)
+	{
+		send_response(conn, HTTP_RESPONSE_TIMEOUT, NULL);
+		return 0;
+	}
+
 	recs = conf.site;
 	for(i=0; i<conf.num; i++)
 	{
@@ -357,7 +365,7 @@ int loong_sso_update(loong_conn *conn)
 			memset(&str, 0, sizeof(str));
 			memset(&code, 0, sizeof(code));
 			
-			snprintf(str, sizeof(str), "%s|%s|%s|%s|%s|%s", recs[i].update_key, uid, username, password, email, date);
+			snprintf(str, sizeof(str), "%s|%s|%s|%s|%s|%s", recs[i].update_key, uid, username, password, email, now);
 			MD5String(str, code);
 			
 			if(strcasecmp(sign, code) == 0)
@@ -381,7 +389,7 @@ int loong_sso_update(loong_conn *conn)
 					tcmapput2(data, "username", username);
 					tcmapput2(data, "password", password);
 					tcmapput2(data, "email",    email);
-
+					
 					cmd = update_user_info(data);
 					send_response(conn, cmd, str);
 				}
@@ -412,6 +420,7 @@ int loong_sso_update(loong_conn *conn)
 int loong_sso_delete(loong_conn *conn)
 {
 	int   i;
+	time_t sec;
 	TCMAP *data;
 	char  code[35];
 	char  str[100];
@@ -430,6 +439,14 @@ int loong_sso_delete(loong_conn *conn)
 		return 0;
 	}
 	
+	sec = (time_t)strtol(now, 0, 10);
+	i   = is_timeout(sec, conf.timeout);
+	if(!i)
+	{
+		send_response(conn, HTTP_RESPONSE_TIMEOUT, NULL);
+		return 0;
+	}
+
 	recs = conf.site;
 	for(i=0; i<conf.num; i++)
 	{
@@ -438,7 +455,7 @@ int loong_sso_delete(loong_conn *conn)
 			memset(&str, 0, sizeof(str));
 			memset(&code, 0, sizeof(code));
 			
-			snprintf(str, sizeof(str), "%s|%s", recs[i].update_key, uid);
+			snprintf(str, sizeof(str), "%s|%s|%s", recs[i].update_key, uid, now);
 			MD5String(str, code);
 			
 			if(strcasecmp(sign, code) == 0)
