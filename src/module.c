@@ -87,11 +87,11 @@ int loong_sso_validate(loong_conn *conn)
 //loongSSO 注册
 int loong_sso_register(loong_conn *conn)
 {
-	char *email;
-	char *password;
+	const char *email;
+	const char *username;
+	const char *password;
 	const char *public_code;
 	const char *private_code;
-	unsigned char *username;
 	
 
 	uint64_t id, key;
@@ -101,19 +101,26 @@ int loong_sso_register(loong_conn *conn)
 	
 	struct loong_passwd info;
 
-	email        = (char *)tcmapget2(conn->recs, "email");
+	email        = tcmapget2(conn->recs, "email");
 	private_code = hash_get(codepool, conn->code);
 	public_code  = tcmapget2(conn->recs, "code");
-	username     = (char *)tcmapget2(conn->recs, "username");
-	password     = (char *)tcmapget2(conn->recs, "password");
+	username     = tcmapget2(conn->recs, "username");
+	password     = tcmapget2(conn->recs, "password");
 
-	if(username == NULL || !is_username(username))
+//CHINA_USERNAME  允许带中文、字母、数字的用户名
+//ALPHA_USERNAME  允许带字母、数字的用户名
+
+#ifdef CHINA_USERNAME
+	if(username == NULL || !is_ch_username((unsigned char *)username))
+#elif ALPHA_USERNAME
+	if(username == NULL || !is_alpha_username(username))
+#endif
 	{
 		//用户验证失败
 		send_response(conn, HTTP_RESPONSE_USERNAME_NO, NULL);
 		return 0;
 	}
-	else if(!is_user_exists(username))
+	else if(is_user_exists(username))
 	{
 		//用户名已存在
 		send_response(conn, HTTP_RESPONSE_USERNAME_EXISTS, NULL);
@@ -131,7 +138,7 @@ int loong_sso_register(loong_conn *conn)
 		send_response(conn, HTTP_RESPONSE_EMAIL_NO, NULL);
 		return 0;
 	}
-	else if(!is_mail_exists(email))
+	else if(is_mail_exists(email))
 	{
 		//mail已存在
 		send_response(conn, HTTP_RESPONSE_EMAIL_EXISTS, NULL);
@@ -153,7 +160,7 @@ int loong_sso_register(loong_conn *conn)
 	memset(query, 0, sizeof(query));
 	
 	
-	MD5String(password, code);
+	MD5String((char *)password, code);
 
 	id        = ident_key();
 	
@@ -276,10 +283,10 @@ int loong_sso_login(loong_conn *conn)
 // /?module=check&type=user&data=xxxx
 int loong_sso_check(loong_conn *conn)
 {
-	char *type, *data;
+	const char *type, *data;
 
-	type = (char *)tcmapget2(conn->recs, "type");
-	data = (char *)tcmapget2(conn->recs, "data");
+	type = tcmapget2(conn->recs, "type");
+	data = tcmapget2(conn->recs, "data");
 	
 	if(type == NULL)
 	{
@@ -289,22 +296,22 @@ int loong_sso_check(loong_conn *conn)
 	{
 		if(data == NULL || !is_mail_exists(data))
 		{
-			send_response(conn, HTTP_RESPONSE_EMAIL_OK, NULL);
+			send_response(conn, HTTP_RESPONSE_EMAIL_NO, NULL);
 		}
 		else
 		{
-			send_response(conn, HTTP_RESPONSE_EMAIL_NO, NULL);
+			send_response(conn, HTTP_RESPONSE_EMAIL_OK, NULL);
 		}
 	}
 	else if(strcasecmp(type, "user") == 0)
 	{
 		if(data == NULL || !is_user_exists(data))
 		{
-			send_response(conn, HTTP_RESPONSE_USERNAME_OK, NULL);
+			send_response(conn, HTTP_RESPONSE_USERNAME_NO, NULL);
 		}
 		else
 		{
-			send_response(conn, HTTP_RESPONSE_USERNAME_NO, NULL);
+			send_response(conn, HTTP_RESPONSE_USERNAME_OK, NULL);
 		}
 	}
 	else
@@ -372,7 +379,7 @@ int loong_sso_update(loong_conn *conn)
 					
 					//用最新的 覆盖旧有的数据
 					tcmapput2(data, "username", username);
-					tcmapput2(data, "password", password]);
+					tcmapput2(data, "password", password);
 					tcmapput2(data, "email",    email);
 
 					cmd = update_user_info(data);
@@ -410,13 +417,14 @@ int loong_sso_delete(loong_conn *conn)
 	char  str[100];
 	http_response_t cmd;
 	struct loong_site *recs;
-	const char *mode, *uid, *sign;
+	const char *mode, *uid, *sign, *now;
 	
 	uid  = tcmapget2(conn->recs, "uid");
+	now  = tcmapget2(conn->recs, "now");
 	mode = tcmapget2(conn->recs, "mode");
 	sign = tcmapget2(conn->recs, "sign");
 
-	if(uid == NULL || mode == NULL || sign == NULL)
+	if(uid == NULL || mode == NULL || sign == NULL || now == NULL)
 	{
 		send_response(conn, HTTP_RESPONSE_VARIABLE_ERROR, NULL);
 		return 0;

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include "hash.h"
+#include <loong.h>
 
 //ident.c
 static const unsigned int sizes[] = {
@@ -14,7 +14,8 @@ static const unsigned int sizes[] = {
 };
 
 
-static const int sizes_count   = sizeof(sizes) / sizeof(sizes[0]);
+static const int   sizes_count   = sizeof(sizes) / sizeof(sizes[0]);
+static const int   code_time_out = 2;
 static const float load_factor = 0.65;
 
 struct record 
@@ -31,6 +32,7 @@ struct hash
 	unsigned int   records_count;
 };
 
+/*
 int is_timeout(time_t t1)
 {
 	int n;
@@ -47,6 +49,7 @@ int is_timeout(time_t t1)
 	}
 	return 1;
 }
+*/
 
 static int hash_grow(hash *h)
 {
@@ -71,7 +74,7 @@ static int hash_grow(hash *h)
 	{
         if (old_recs[i].key)
 		{
-			rc = is_timeout(old_recs[i].lifetime);
+			rc = is_timeout(old_recs[i].lifetime, code_time_out);
 			if(rc)
 			{
 				hash_add(h, old_recs[i].key, old_recs[i].value, old_recs[i].lifetime);
@@ -138,7 +141,7 @@ int hash_add(hash *h, uint64_t key, char *value, time_t lifetime)
 
     while (recs[ind].key)
 	{
-		rc = is_timeout(recs[ind].lifetime);
+		rc = is_timeout(recs[ind].lifetime, code_time_out);
 		if(!rc)
 		{
 			//超时的记录
@@ -178,7 +181,7 @@ const char *hash_get(hash *h, const uint64_t key)
 
     while (recs[ind].key) 
 	{
-		rc = is_timeout(recs[ind].lifetime);
+		rc = is_timeout(recs[ind].lifetime, code_time_out);
 		if(!rc)
 		{
 			//超时的记录,将这条记录置为删除的标志

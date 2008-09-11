@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="gbk"?>
 <loongSSO>
-    <domain>.loongsso.com</domain>      <!-- 服务器端的域名 -->
-	<server_id>1</server_id>           <!-- 服务器端ID 集群式可用 --> 
+    <domain>.loongsso.com</domain>       <!-- 服务器端的域名 -->
+	<server_id>1</server_id>             <!-- 服务器端ID 集群式可用 --> 
 	<server_port>7171</server_port>      <!-- 服务器端口号 -->
+	<timeout>1</timeout>                 <!-- 客户端向服务器端提交的,超时验证时间,以分钟为单位 -->
 
 	<mysql>
 		<host>localhost</host>   <!-- mysql主机地址 -->

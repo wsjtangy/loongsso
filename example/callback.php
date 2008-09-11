@@ -2,7 +2,7 @@
 
 define("PRIVATE_UPDATE_KEY", "loongSSO_UPDATE_CELLPHP_KEY");
 
-$uid = "1221027823394981462";
+$uid = "1221102757657484218";
 
 echo md5(PRIVATE_UPDATE_KEY."|".$uid);
 

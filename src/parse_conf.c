@@ -29,7 +29,11 @@ void parse_root_info(sxml_node_t *root)
 			}
 			if(strcasecmp(sxml_get_element_name(np), "server_id") == 0)
 			{
-				conf.server_id = atoi(content);
+				conf.server_id   = atoi(content);
+			}
+			if(strcasecmp(sxml_get_element_name(np), "timeout") == 0)
+			{
+				conf.timeout     = atoi(content);
 			}
 			if(strcasecmp(sxml_get_element_name(np), "domain") == 0)
 			{
