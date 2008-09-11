@@ -205,22 +205,20 @@ int loong_sso_register(loong_conn *conn)
 }
 
 //用户登陆
-// /?module=login&type=mail&mail=xxxx&password=xxxx
-// /?module=login&type=user&username=xxxx&password=xxxx
+// /?module=login&type=mail&date=xxxx&password=xxxx
+// /?module=login&type=user&date=xxxx&password=xxxx
 int loong_sso_login(loong_conn *conn)
 {
 	int rc;
 	char code[34];
 	struct loong_passwd *info;
 	char *val, *password, *json;
-	const char *type, *mail, *username;
+	const char *type, *data;
 	
 	memset(code, 0, sizeof(code));
 	type     = tcmapget2(conn->recs, "type");
-	mail     = tcmapget2(conn->recs, "mail");
+	data     = tcmapget2(conn->recs, "data");
 	password = (char *)tcmapget2(conn->recs, "password");
-	username = tcmapget2(conn->recs, "username");
-
 
 	if(type == NULL)
 	{
@@ -230,7 +228,7 @@ int loong_sso_login(loong_conn *conn)
 	}
 	else if(strcasecmp(type, "mail") == 0)
 	{
-		if((mail == NULL) || !(val = tchdbget2(loong_mail, mail)))
+		if((data == NULL) || !is_mail_exists(data))
 		{
 			//mail不存在
 			send_response(conn, HTTP_RESPONSE_EMAIL_NO, NULL);
@@ -239,7 +237,7 @@ int loong_sso_login(loong_conn *conn)
 	}
 	else if(strcasecmp(type, "user") == 0)
 	{
-		if((username == NULL) || !(val = tchdbget2(loong_user, username)))
+		if((data == NULL) || !is_user_exists(data))
 		{
 			//用户名不存在
 			send_response(conn, HTTP_RESPONSE_USERNAME_NO, NULL);
@@ -294,7 +292,7 @@ int loong_sso_check(loong_conn *conn)
 	}
 	else if(strcasecmp(type, "mail") == 0)
 	{
-		if(data == NULL || !is_mail_exists(data))
+		if(data == NULL || is_mail_exists(data))
 		{
 			send_response(conn, HTTP_RESPONSE_EMAIL_NO, NULL);
 		}
@@ -305,7 +303,7 @@ int loong_sso_check(loong_conn *conn)
 	}
 	else if(strcasecmp(type, "user") == 0)
 	{
-		if(data == NULL || !is_user_exists(data))
+		if(data == NULL || is_user_exists(data))
 		{
 			send_response(conn, HTTP_RESPONSE_USERNAME_NO, NULL);
 		}
@@ -349,6 +347,7 @@ int loong_sso_update(loong_conn *conn)
 		send_response(conn, HTTP_RESPONSE_VARIABLE_ERROR, NULL);
 		return 0;
 	}
+
 	sec = (time_t)strtol(now, 0, 10);
 	i   = is_timeout(sec, conf.timeout);
 	if(!i)
