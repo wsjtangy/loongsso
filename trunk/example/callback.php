@@ -2,9 +2,26 @@
 
 define("PRIVATE_UPDATE_KEY", "loongSSO_UPDATE_CELLPHP_KEY");
 
-$uid = "1221102757657484218";
+$time = time();
+$uid  = "1221114827229291379";
 
-echo md5(PRIVATE_UPDATE_KEY."|".$uid);
+if($_GET["action"] == "delete")
+{
+	$sign = md5(PRIVATE_UPDATE_KEY."|".$uid."|".$time);
+
+	header("Location: http://www.loongsso.com:7171/?module=delete&mode=cellphp&uid={$uid}&now={$time}&sign={$sign}");
+}
+else if($_GET["action"] == "update")
+{
+	$email    = "lijinxing@Gmail.com";
+	$username = "base";
+	$password = "123456789";
+	//snprintf(str, sizeof(str), "%s|%s|%s|%s|%s|%s", recs[i].update_key, uid, username, password, email, now);
+
+	$sign = md5(PRIVATE_UPDATE_KEY."|".$uid."|".$username."|".$password."|".$email."|".$time);
+
+	header("Location: http://www.loongsso.com:7171/?module=update&mode=cellphp&uid={$uid}&username={$username}&password={$password}&email={$email}&now={$time}&sign={$sign}");
+}
 
 /*
 define("PRIVATE_KEY", "loongSSO_YOU54_2008_KEY");	

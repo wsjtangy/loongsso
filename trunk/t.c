@@ -18,6 +18,8 @@ TCMAP *fetch_user_info(char *uid);
 
 unsigned int strhash(const char *str);
 
+void Test_out();
+
 int main(int argc, char *argv[])
 {
 	int rc;
@@ -144,6 +146,8 @@ int main(int argc, char *argv[])
 	tchdbclose(loong_info);
 	tchdbdel(loong_info);
 	
+	Test_out();
+
 //	fetch_user_info("1220582278313757000");
 	return 0;
 }
@@ -173,6 +177,36 @@ unsigned int strhash(const char *str)
         hash = hash * 33 + c;
     }
 	return hash == 0 ? 1 : hash;
+}
+
+int is_timeout(time_t t1, int minute)
+{
+	int n;
+	time_t now;
+
+	now = time((time_t*)0);
+	n   = (int)difftime(now, t1);
+	n  /= 60;   //转换为分钟
+	
+	printf("n = %d\tnow = %u\r\n", n, now);
+	if(n > minute)
+	{
+		//超时,返回假
+		return 0;
+	}
+	return 1;
+}
+
+
+void Test_out()
+{
+	size_t sec;
+	char now[] = "1221121235";
+
+	sec = (time_t)strtol(now, 0, 10);
+	
+	is_timeout(sec, 3);
+	printf("sec = %u\tnow = %s\r\n", sec, now);
 }
 
 
