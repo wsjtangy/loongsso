@@ -485,7 +485,7 @@ TCMAP *fetch_user_info(const char *uid)
 	data = tcmapnew2(15);
 	
 	tcmapput2(data, "uid",      uid);
-	tcmapput2(data, "username", rows[0]);
+	tcmapput2(data, "old_name", rows[0]);
 	tcmapput2(data, "password", rows[1]);
 	tcmapput2(data, "email",    rows[2]);
 	tcmapput2(data, "ip",       rows[3]);
