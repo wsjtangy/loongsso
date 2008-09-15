@@ -13,9 +13,9 @@ if($_GET["action"] == "delete")
 }
 else if($_GET["action"] == "update")
 {
-	$email    = "lijinxing@Gmail.com";
-	$username = "base";
-	$password = "123456789";
+	$email    = "lijinxing17@163.com";
+	$username = "liuxing";
+	$password = "okokok";
 	//snprintf(str, sizeof(str), "%s|%s|%s|%s|%s|%s", recs[i].update_key, uid, username, password, email, now);
 
 	$sign = md5(PRIVATE_UPDATE_KEY."|".$uid."|".$username."|".$password."|".$email."|".$time);

@@ -484,14 +484,14 @@ TCMAP *fetch_user_info(const char *uid)
 	
 	data = tcmapnew2(15);
 	
-	tcmapput2(data, "uid",      uid);
-	tcmapput2(data, "old_name", rows[0]);
-	tcmapput2(data, "password", rows[1]);
-	tcmapput2(data, "email",    rows[2]);
-	tcmapput2(data, "ip",       rows[3]);
-	tcmapput2(data, "sex",      rows[4]);
-	tcmapput2(data, "reg_time", rows[5]);
-	tcmapput2(data, "c_status", rows[6]);
+	tcmapput2(data, "uid",       uid);
+	tcmapput2(data, "old_name",  rows[0]);
+	tcmapput2(data, "password",  rows[1]);
+	tcmapput2(data, "old_email", rows[2]);
+	tcmapput2(data, "ip",        rows[3]);
+	tcmapput2(data, "sex",       rows[4]);
+	tcmapput2(data, "reg_time",  rows[5]);
+	tcmapput2(data, "c_status",  rows[6]);
 
 	mysql_free_result(res); 
 
@@ -508,26 +508,63 @@ http_response_t update_user_info(TCMAP *data)
 	my_ulonglong rows;
 	int  parm_len, rc;
 	struct loong_passwd info;
-	const char *password, *username, *email, *uid, *now, *ip;
+	const char *old_name,  *new_name;
+	const char *old_email, *new_email;
+	const char *password,  *uid,  *now, *ip;
 	
 	memset(&code, 0, sizeof(code));
 	memset(&parm, 0, sizeof(parm));
 	
 	
-	uid       = tcmapget2(data, "uid");
-	email     = tcmapget2(data, "email");
-	username  = tcmapget2(data, "username");
-	password  = tcmapget2(data, "password");
+	ip         = tcmapget2(data, "ip");
+	uid        = tcmapget2(data, "uid");
+	now        = tcmapget2(data, "reg_time");
+	password   = tcmapget2(data, "password");
+	new_name   = tcmapget2(data, "new_name");
+	old_name   = tcmapget2(data, "old_name");
+	new_email  = tcmapget2(data, "new_email");
+	old_email  = tcmapget2(data, "old_email");
 
-	ip        = tcmapget2(data, "ip");
-	now       = tcmapget2(data, "reg_time");
+//CHINA_USERNAME  允许带中文、字母、数字的用户名
+//ALPHA_USERNAME  允许带字母、数字的用户名
+
+#ifdef CHINA_USERNAME
+	if(new_name == NULL || !is_ch_username((unsigned char *)new_name))
+#elif ALPHA_USERNAME
+	if(new_name == NULL || !is_alpha_username(new_name))
+#endif
+	{
+		//用户验证失败
+		return HTTP_RESPONSE_USERNAME_NO;
+	}
+	else if( (strcasecmp(new_name, old_name) != 0) && is_user_exists(new_name))
+	{
+		//用户名已存在
+		//当新用户名和旧用户名不一样的时候,才检查该用户名是否已存在
+		return HTTP_RESPONSE_USERNAME_EXISTS;
+	}
+	else if(password == NULL || !is_password(password))
+	{
+		//密码验证失败
+		return HTTP_RESPONSE_PASSWORD_NO;
+	}
+	else if(new_email == NULL || !is_mail(new_email))
+	{
+		//mail验证失败
+		return HTTP_RESPONSE_EMAIL_NO;
+	}
+	else if((strcasecmp(new_email, old_email) != 0) && is_mail_exists(new_email))
+	{
+		//mail已存在
+		return HTTP_RESPONSE_EMAIL_EXISTS;
+	}
 
 	
 	MD5String((char *)password, code);
 
-	ind       = strhash(uid);
 	id        = strtoull(uid, 0, 10);
-	parm_len  = snprintf(parm, sizeof(parm), "UPDATE member_%u SET `username` = '%s', `password` = '%s', `email` = '%s' WHERE `uid` = '%s'", (ind % TABLE_CHUNK), username, code, email, uid);
+	ind       = strhash(uid);
+	parm_len  = snprintf(parm, sizeof(parm), "UPDATE member_%u SET `username` = '%s', `password` = '%s', `email` = '%s' WHERE `uid` = '%s'", (ind % TABLE_CHUNK), new_name, code, new_email, uid);
 	rc        = mysql_real_query(dbh, parm, parm_len);
 	if(rc)
 	{
@@ -539,19 +576,19 @@ http_response_t update_user_info(TCMAP *data)
 	if(rows < 1) return HTTP_RESPONSE_USERNAME_NOT_EXISTS;
 	
 	memset(&parm, 0, sizeof(parm));
-	parm_len  = snprintf(parm, sizeof(parm), "id:%llu|username:%s|mail:%s|ip:%u|time:%u|", id, username, email, ip, now);
+	parm_len  = snprintf(parm, sizeof(parm), "id:%llu|username:%s|mail:%s|ip:%u|time:%u|", id, new_name, new_email, ip, now);
 	
 	info.id           = id;
 	info.loong_status = 1;
 	memcpy(info.pass, code, sizeof(info.pass));
 
-	if(!tchdbput(loong_user, username, strlen(username), (char *)&(info), sizeof(struct loong_passwd)))
+	if(!tchdbput(loong_user, new_name, strlen(new_name), (char *)&(info), sizeof(struct loong_passwd)))
 	{
 		rc = tchdbecode(loong_user);
 		//printf("loong_user error: %s\r\n", tchdberrmsg(rc));
 		return HTTP_RESPONSE_CACHE_ERROR;
 	}
-	if(!tchdbput(loong_mail, email, strlen(email), (char *)&(info), sizeof(struct loong_passwd)))
+	if(!tchdbput(loong_mail, new_email, strlen(new_email), (char *)&(info), sizeof(struct loong_passwd)))
 	{
 		rc = tchdbecode(loong_mail);
 		//printf("loong_mail error: %s\r\n", tchdberrmsg(rc));
