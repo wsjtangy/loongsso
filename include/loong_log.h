@@ -4,8 +4,8 @@
 
 void lonng_log_init();
 
-void loong_write_log();
-
 void loong_destroy_log();
+
+void loong_write_log(const char *arg, ...);
 
 #endif

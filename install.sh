@@ -3,6 +3,7 @@
 gcc -c md5.c -I.. -I../include -O3 -fno-guess-branch-probability
 gcc -c sxml.c -I.. -I../include -O3 -fno-guess-branch-probability
 gcc -c estring.c -I.. -I../include -O3 -fno-guess-branch-probability
+gcc -c loong_log.c -I.. -I../include -O3 -fno-guess-branch-probability
 gcc -c parse_conf.c -I.. -I../include -I/usr/local/tokyocabinet/include -I/usr/local/mysql/include/mysql -O3 -fno-guess-branch-probability -DHAVE_SYS_EPOLL_H -DCHINA_USERNAME
 gcc -c module.c -I.. -I../include -I/usr/local/tokyocabinet/include -I/usr/local/gd2/include -I/usr/local/mysql/include/mysql -O3 -fno-guess-branch-probability -DHAVE_SYS_EPOLL_H -DCHINA_USERNAME
 gcc -c hash.c -I.. -I../include -I/usr/local/tokyocabinet/include -I/usr/local/gd2/include -I/usr/local/mysql/include/mysql -O3 -fno-guess-branch-probability -DHAVE_SYS_EPOLL_H -DCHINA_USERNAME
