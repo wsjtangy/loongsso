@@ -1,7 +1,6 @@
 #ifndef __LOONG_H_
 #define __LOONG_H_
 
-
 #include <md5.h>
 #include <base.h>
 #include <hash.h>
@@ -10,6 +9,7 @@
 #include <module.h>
 #include <estring.h>
 #include <protocol.h>
+#include <loong_log.h>
 #include <parse_conf.h>
 
 #ifdef HAVE_SYS_EVENT_H
