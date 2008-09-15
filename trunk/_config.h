@@ -9,6 +9,7 @@
 #define LOONG_MAIL_PATH     "/home/lijinxing/labs/cache/loong_mail.db"    //存储用户key=mail, value=password的mail缓存库
 #define LOONG_USER_PATH     "/home/lijinxing/labs/cache/loong_user.db"    //存储用户key=username, value=password的user缓存库
 #define LOONG_CONFIG_PATH   "/home/lijinxing/labs/conf/loong_sso.xml"     //loong SSO配置文件的绝对路径
+#define LOONG_LOG_PATH      "/home/lijinxing/labs/log/loong_sso.log"      //loong SSO日志文件的绝对路径
 
 #endif
 
