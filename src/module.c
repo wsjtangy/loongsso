@@ -187,17 +187,17 @@ int loong_sso_register(loong_conn *conn)
 	if(!tchdbput(loong_user, username, strlen(username), (char *)&(info), sizeof(struct loong_passwd)))
 	{
 		rc = tchdbecode(loong_user);
-		printf("loong_user error: %s\r\n", tchdberrmsg(rc));
+		//printf("loong_user error: %s\r\n", tchdberrmsg(rc));
 	}
 	if(!tchdbput(loong_mail, email, strlen(email), (char *)&(info), sizeof(struct loong_passwd)))
 	{
 		rc = tchdbecode(loong_mail);
-		printf("loong_mail error: %s\r\n", tchdberrmsg(rc));
+		//printf("loong_mail error: %s\r\n", tchdberrmsg(rc));
 	}
 	if(!tchdbput(loong_info, (char *)&(id), sizeof(uint64_t), json, json_len))
 	{
 		rc = tchdbecode(loong_info);
-		printf("loong_info error: %s\r\n", tchdberrmsg(rc));
+		//printf("loong_info error: %s\r\n", tchdberrmsg(rc));
 	}
 
 	send_response(conn, HTTP_RESPONSE_REGISTER_OK, json);
@@ -385,9 +385,9 @@ int loong_sso_update(loong_conn *conn)
 					snprintf(str, sizeof(str), "uid=%s&username=%s&email=%s&date=%u&sign=%s",  uid, username, email, conn->now, code);
 					
 					//用最新的 覆盖旧有的数据
-					tcmapput2(data, "new_name", username);
-					tcmapput2(data, "password", password);
-					tcmapput2(data, "email",    email);
+					tcmapput2(data, "new_name",  username);
+					tcmapput2(data, "password",  password);
+					tcmapput2(data, "new_email", email);
 					
 					cmd = update_user_info(data);
 					send_response(conn, cmd, str);
