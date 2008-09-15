@@ -385,7 +385,7 @@ int loong_sso_update(loong_conn *conn)
 					snprintf(str, sizeof(str), "uid=%s&username=%s&email=%s&date=%u&sign=%s",  uid, username, email, conn->now, code);
 					
 					//用最新的 覆盖旧有的数据
-					tcmapput2(data, "username", username);
+					tcmapput2(data, "new_name", username);
 					tcmapput2(data, "password", password);
 					tcmapput2(data, "email",    email);
 					
