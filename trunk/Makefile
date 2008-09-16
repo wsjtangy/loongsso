@@ -18,22 +18,27 @@ CFLAGS = -O3 -fno-guess-branch-probability -DHAVE_SYS_EPOLL_H -DCHINA_USERNAME
 
 
 loong:
-	$(CC) -c $(SRCS) $(INCLUDE) $(CFLAGS); 
-	$(CC) -o loong ./src/loong.c $(OBJS) $(INCLUDE) $(LIBS) $(MYLIB) $(CFLAGS); 
+	$(CC) -c $(SRCS) $(INCLUDE) $(CFLAGS); \
+	$(CC) -o loong ./src/loong.c $(OBJS) $(INCLUDE) $(LIBS) $(MYLIB) $(CFLAGS); \
 	@echo "\r\n\r\nPlease Run make install";
 
 
 clean:
 	-@rm $(OBJS) _config.h loong
 
-install: myapp
+install: 
 	@if [ -d $(INSTDIR) ]; \
 	then \
-		cp myapp $(INSTDIR);\
-		chmod a+x $(INSTDIR)/myapp;\
-		chmod og-w $(INSTDIR)/myapp;\
+		cp loong $(INSTDIR);\
+		cp -r ./conf/ $(INSTDIR);\
+		cp -r ./font/ $(INSTDIR);\
 		echo "Installed in $(INSTDIR)";\
 	else \
-		echo "Sorry, $(INSTDIR) does not exist";\
+# no have this dir
+		mkdir $(INSTDIR); \
+		cp loong $(INSTDIR);\
+		cp -r ./conf/ $(INSTDIR);\
+		cp -r ./font/ $(INSTDIR);\
+		echo "Installed in $(INSTDIR)";\
 	fi
 
