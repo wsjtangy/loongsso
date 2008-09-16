@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <loong.h>
 
 FILE *fp;
 
