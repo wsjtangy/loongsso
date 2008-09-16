@@ -4,7 +4,7 @@ all: loong
 CC = gcc
 
 # Where to install
-INSTDIR = /usr/local/bin
+INSTDIR = /home/lijinxing/bak
 
 # Where are include files kept
 INCLUDE = -I./ -I./include -I/usr/local/tokyocabinet/include -I/usr/local/gd2/include -I/usr/local/mysql/include/mysql
@@ -18,8 +18,8 @@ CFLAGS = -O3 -fno-guess-branch-probability -DHAVE_SYS_EPOLL_H -DCHINA_USERNAME
 
 
 loong:
-	$(CC) -c $(SRCS) $(INCLUDE) $(CFLAGS); \
-	$(CC) -o loong ./src/loong.c $(OBJS) $(INCLUDE) $(LIBS) $(MYLIB) $(CFLAGS); \
+	$(CC) -c $(SRCS) $(INCLUDE) $(CFLAGS); 
+	$(CC) -o loong ./src/loong.c $(OBJS) $(INCLUDE) $(LIBS) $(MYLIB) $(CFLAGS); 
 	@echo "\r\n\r\nPlease Run make install";
 
 
@@ -27,18 +27,10 @@ clean:
 	-@rm $(OBJS) _config.h loong
 
 install: 
-	@if [ -d $(INSTDIR) ]; \
-	then \
-		cp loong $(INSTDIR);\
-		cp -r ./conf/ $(INSTDIR);\
-		cp -r ./font/ $(INSTDIR);\
-		echo "Installed in $(INSTDIR)";\
-	else \
-# no have this dir
-		mkdir $(INSTDIR); \
-		cp loong $(INSTDIR);\
-		cp -r ./conf/ $(INSTDIR);\
-		cp -r ./font/ $(INSTDIR);\
-		echo "Installed in $(INSTDIR)";\
-	fi
+	[[ -d $(INSTDIR) ]] || mkdir $(INSTDIR); 
+	cp loong $(INSTDIR); 
+	cp -r ./conf/ $(INSTDIR); 
+	cp -r ./font/ $(INSTDIR); 
+	-@rm $(OBJS) _config.h loong; 
+	@echo "Installed in $(INSTDIR)";
 
