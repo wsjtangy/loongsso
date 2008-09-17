@@ -60,7 +60,7 @@ function print_help()
 	echo "Options: --prefix[=DIR]            Loong SSO Install dir"
 	echo "         --with-gd[=DIR]           Include GD support.  DIR is the GD library base install directory [BUNDLED]"
 	echo "         --with-mysql[=DIR]        Include MySQL support. DIR is the MySQL base directory"
-	echo "         --with-table-num[=num]    DB max member table"
+	echo "         --with-table-num[=num]    DB max split member table"
 	exit 0 ;
 }
 
