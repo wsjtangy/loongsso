@@ -130,3 +130,5 @@ echo -e "INCLUDE = -I./ -I./include -I${cache}/include -I${gd}/include -I${mysql
 echo -e "LIBS    = -L${cache}/lib -L${gd}/lib -L${mysql}/lib/mysql\r\n" >> Makefile;
 
 cat Makefile.in >> Makefile;
+
+echo -e "\r\nplease Run make\r\n";
