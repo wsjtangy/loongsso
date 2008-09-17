@@ -57,36 +57,76 @@ function getopt()
 function print_help()
 {
 	echo 'usage:   configure '
-	echo "Options: --prefix[=DIR]            Loong SSO Install dir"
-	echo "         --with-gd[=DIR]           Include GD support.  DIR is the GD library base install directory [BUNDLED]"
-	echo "         --with-mysql[=DIR]        Include MySQL support. DIR is the MySQL base directory"
-	echo "         --with-table-num[=num]    DB max split member table"
+	echo "Options: --prefix[=DIR]          Loong SSO Install dir"
+	echo "         --gd[=DIR]              Include GD support.  DIR is the GD library base install directory [BUNDLED]"
+	echo "         --mysql[=DIR]           Include MySQL support. DIR is the MySQL base directory"
+	echo "         --cache[=DIR]           Include cache support. DIR is the cache base directory"
+	echo "         --user[=TYPE]           用户名是否允许包含中文名, 1为允许包含英文字母、数字 2为允许包含英文字母、数字、中文 (默认为1)"
+	echo "         --table[=num]           DB max split member table(数据库 用户表的分表个数,默认是 '1')"
 	exit 0 ;
 }
 
+user=1
+table=1
+OS=$(uname)
+
 OIFS=$IFS; IFS=$(echo -e "\n"); getopt $@; IFS=$OIFS
 
-#echo -e "
-#foo:\t$foo
-#v:\t$v
-#n:\t$n
-#blah:\t$blah
-#one:\t$one
-#xing:\t$xing
-#"
+
 
 if [ "$help" == "1" ]; then
 	print_help
 	exit 0;
 fi
 
-if [ -z "$foo" ]; then
-	echo "ddd"; 
+if [ -z "$prefix" ] || [ -z "$gd" ] || [ -z "$mysql" ] || [ -z "$cache" ] || [ $table -le 0 ]; then
+	print_help
 	exit 0;
-elif [ -z "$xing" ]; then
-	echo "xing"; 
-	exit 0;	
 fi
 
 
 
+loong_define_config="\
+#ifndef __CONFIG_H_
+\r\n#define __CONFIG_H_
+\r\n
+\r\n#define TABLE_CHUNK         ${table} 
+\r\n#define WATER_MARK          \"loong SSO\"
+\r\n#define SIGN_FONT_PATH      \"${prefix}/font/augie.ttf\"
+\r\n#define LOONG_INFO_PATH     \"${prefix}/cache/loong_info.db\"
+\r\n#define LOONG_MAIL_PATH     \"${prefix}/cache/loong_mail.db\"
+\r\n#define LOONG_USER_PATH     \"${prefix}/cache/loong_user.db\"
+\r\n#define LOONG_CONFIG_PATH   \"${prefix}/conf/loong_sso.xml\"
+\r\n#define LOONG_LOG_PATH      \"${prefix}/log/loong_sso.log\"
+\r\n\r\n#endif
+\r\n"
+
+
+echo -e $loong_define_config > _config.h
+
+echo -e "all: loong\r\nCC = gcc\r\nINSTDIR = ${prefix}\r\n" > Makefile
+
+if [ "$OS" == "Linux" ]; then
+	condition1="CFLAGS = -O2 -fno-guess-branch-probability -DHAVE_SYS_EPOLL_H";
+elif [ "$OS" == "FreeBSD" ]; then
+	condition1="CFLAGS = -O2 -fno-guess-branch-probability -DHAVE_SYS_EVENT_H";
+else
+	echo "loong sso not run this ${OS}";
+	exit 0;
+fi
+
+if [ "$user" == "1" ]; then
+	condition2="-DALPHA_USERNAME";
+elif [ "$user" == "2" ]; then
+	condition2="-DCHINA_USERNAME";
+else
+	echo "Please select USERNAME TYLE '1 or 2'";
+	exit 0;
+fi
+
+echo -e "${condition1} ${condition2}\r\n" >> Makefile;
+
+echo -e "INCLUDE = -I./ -I./include -I${cache}/include -I${gd}/include -I${mysql}/include/mysql\r\n" >> Makefile;
+echo -e "LIBS    = -L${cache}/lib -L${gd}/lib -L${mysql}/lib/mysql\r\n" >> Makefile;
+
+cat Makefile.in >> Makefile;
