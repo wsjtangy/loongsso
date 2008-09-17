@@ -35,7 +35,14 @@ install:
 	   mkdir "$(INSTDIR)/cache"; \
 	fi
 
-	cp loong $(INSTDIR); 
+	@if [ ! -d "$(INSTDIR)/sbin" ]; then \
+	   mkdir "$(INSTDIR)/sbin"; \
+	fi
+	@if [ ! -d "$(INSTDIR)/log" ]; then \
+	   mkdir "$(INSTDIR)/log"; \
+	fi
+
+	cp loong $(INSTDIR)/sbin/; 
 	cp -r ./conf/ $(INSTDIR);  
 	cp -r ./font/ $(INSTDIR);  
 	@echo "Installed in $(INSTDIR)"; 
