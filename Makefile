@@ -14,23 +14,26 @@ OBJS    = estring.o  md5.o  sxml.o loong_log.o module.o protocol.o util.o evio_e
 MYLIB   = -lmysqlclient -lgd -ltokyocabinet -lrt
 
 # Options for development
-CFLAGS = -O3 -fno-guess-branch-probability -DHAVE_SYS_EPOLL_H -DCHINA_USERNAME
+CFLAGS = -O2 -fno-guess-branch-probability -DHAVE_SYS_EPOLL_H -DCHINA_USERNAME
 
 
 loong:
 	$(CC) -c $(SRCS) $(INCLUDE) $(CFLAGS); 
 	$(CC) -o loong ./src/loong.c $(OBJS) $(INCLUDE) $(LIBS) $(MYLIB) $(CFLAGS); 
-	@echo "\r\n\r\nPlease Run make install";
+	@echo "\r\nPlease Run make install";
 
 
 clean:
 	-@rm $(OBJS) _config.h loong
 
 install: 
-	[[ -d $(INSTDIR) ]] || mkdir $(INSTDIR); 
+	@if [ ! -d $(INSTDIR) ]; then \
+	   mkdir $(INSTDIR); \
+	fi
+	
 	cp loong $(INSTDIR); 
-	cp -r ./conf/ $(INSTDIR); 
-	cp -r ./font/ $(INSTDIR); 
-	-@rm $(OBJS) _config.h loong; 
-	@echo "Installed in $(INSTDIR)";
+	cp -r ./conf/ $(INSTDIR);  
+	cp -r ./font/ $(INSTDIR);  
+	@echo "Installed in $(INSTDIR)"; 
+	-@rm $(OBJS) _config.h loong;
 
