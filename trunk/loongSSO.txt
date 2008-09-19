@@ -97,4 +97,12 @@ loong SSO serverºÍ client Ê¹ÓÃ HTTPĞ­ÒéÍ¨Ñ¶, ·şÎñ¶Ë¸ù¾İ¿Í»§¶ËµÄÇëÇó»á·µ»Ø²»Í¬µÄ×
 
 loong SSO serverÒ»¹²ÓĞ7¸ö¿ÉÍâ²¿·ÃÎÊÄ£¿é
 
-1. 
+Ò».
+login
+¶ş.
+check
+3. update
+4. delete
+5. logout
+6. validate
+7. register
