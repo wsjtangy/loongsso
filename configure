@@ -108,8 +108,12 @@ echo -e "all: loong\r\nCC = gcc\r\nINSTDIR = ${prefix}\r\n" > Makefile
 
 if [ "$OS" == "Linux" ]; then
 	condition1="CFLAGS = -O2 -fno-guess-branch-probability -DHAVE_SYS_EPOLL_H";
+	echo -e "SRCS    = ./src/estring.c ./src/loong_log.c ./src/module.c ./src/protocol.c ./src/util.c ./src/evio_epoll.c  ./src/hash.c ./src/md5.c ./src/parse_conf.c  ./src/sxml.c\r\n" >> Makefile
+	echo -e "OBJS    = estring.o  md5.o  sxml.o loong_log.o module.o protocol.o util.o evio_epoll.o hash.o parse_conf.o\r\n" >> Makefile
 elif [ "$OS" == "FreeBSD" ]; then
 	condition1="CFLAGS = -O2 -fno-guess-branch-probability -DHAVE_SYS_EVENT_H";
+	echo -e "SRCS    = ./src/estring.c ./src/loong_log.c ./src/module.c ./src/protocol.c ./src/util.c ./src/evio_kqueue.c  ./src/hash.c ./src/md5.c ./src/parse_conf.c  ./src/sxml.c\r\n" >> Makefile
+	echo -e "OBJS    = estring.o  md5.o  sxml.o loong_log.o module.o protocol.o util.o evio_kqueue.o hash.o parse_conf.o\r\n" >> Makefile
 else
 	echo "loong sso not run this ${OS}";
 	exit 0;
