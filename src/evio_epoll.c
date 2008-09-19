@@ -75,7 +75,7 @@ int evio_epoll_wait(struct ev_ct *ct, int timeout, int fd, evio_call_accept _acc
 		
         for (i = 0; i < n; i++)
         {
-			int sfd = (intptr_t)ct->events[i].data.ptr;
+			int sfd = *(int *)ct->events[i].data.ptr;
 			if (sfd == fd)
             {
 				_accept(sfd);
