@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -71,10 +72,10 @@ int evio_epoll_wait(struct ev_ct *ct, int timeout, int fd, evio_call_accept _acc
 		{
 			perror("epoll wait error");
 		}
-
+		
         for (i = 0; i < n; i++)
         {
-			int sfd = (int)ct->events[i].data.ptr;
+			int sfd = (intptr_t)ct->events[i].data.ptr;
 			if (sfd == fd)
             {
 				_accept(sfd);

@@ -220,7 +220,6 @@ int main(int argc, char **argv)
 	if (mysql_real_connect (dbh, conf.host, conf.user, conf.pass, conf.dbname, conf.port, NULL, CLIENT_MULTI_STATEMENTS) == NULL)
     {
         printf ("mysql_real_connect() failed\r\n");
-        mysql_close (dbh);
         return 0;
     }
 	
@@ -233,6 +232,7 @@ int main(int argc, char **argv)
 		if(rc)
 		{
 			printf("Error making query: %s\n", mysql_error(dbh));
+			sig_listen(0);
 			exit(0);
 		}
 	}
@@ -242,6 +242,7 @@ int main(int argc, char **argv)
 	{
 		rc = tchdbecode(loong_info);
 		printf("loong_info.db open error: %s\r\n", tchdberrmsg(rc));
+		sig_listen(0);
 		return 0;
 	}
 
@@ -250,6 +251,7 @@ int main(int argc, char **argv)
 	{
 		rc = tchdbecode(loong_info);
 		printf("loong_mail.db open error: %s\r\n", tchdberrmsg(rc));
+		sig_listen(0);
 		return 0;
 	}
 
@@ -258,6 +260,7 @@ int main(int argc, char **argv)
 	{
 		rc = tchdbecode(loong_info);
 		printf("loong_user.db open error: %s\r\n", tchdberrmsg(rc));
+		sig_listen(0);
 		return 0;
 	}
 
@@ -266,7 +269,7 @@ int main(int argc, char **argv)
     if (sock_fd == -1)
     {
         perror("socket error :");
-        close(sock_fd);
+		sig_listen(0);
         return 1;
     }
     
@@ -276,7 +279,7 @@ int main(int argc, char **argv)
     if (bind (sock_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
     {
 		perror("bind error :");
-        close(sock_fd);
+		sig_listen(0);
         return 1;
     }
 
@@ -284,17 +287,15 @@ int main(int argc, char **argv)
 
 	if (ioctl(sock_fd, FIONBIO, &flags) && ((flags = fcntl(sock_fd, F_GETFL, 0)) < 0 || fcntl(sock_fd, F_SETFL, flags | O_NONBLOCK) < 0)) 
 	{
-		close(sock_fd);
+		sig_listen(0);
 		return -1;
 	}
- //   setnonblocking(sfd);
-    // --------------------------------------
 
     em.init(&ct, MAX_DEFAULT_FDS);
 #ifdef HAVE_SYS_EVENT_H
 	em.add(&ct, sock_fd, EVIO_IN, (void *)&sock_fd);
 #elif HAVE_SYS_EPOLL_H
-	em.add(&ct, sock_fd, EVIO_IN|EVIO_ET, (void *)sock_fd);
+	em.add(&ct, sock_fd, EVIO_IN|EVIO_ET, (void *)&sock_fd);
 #endif
 
 	signal(SIGINT, sig_listen);
