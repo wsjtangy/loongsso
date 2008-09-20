@@ -230,7 +230,7 @@ int loong_sso_login(loong_conn *conn)
 	}
 	else if(strcasecmp(type, "mail") == 0)
 	{
-		if((data == NULL) || !is_mail_exists(data))
+		if((data == NULL) || !(val = tchdbget2(loong_mail, data)))
 		{
 			//mail不存在
 			send_response(conn, HTTP_RESPONSE_EMAIL_NO, NULL);
@@ -239,7 +239,7 @@ int loong_sso_login(loong_conn *conn)
 	}
 	else if(strcasecmp(type, "user") == 0)
 	{
-		if((data == NULL) || !is_user_exists(data))
+		if((data == NULL) || !(val = tchdbget2(loong_user, data)))
 		{
 			//用户名不存在
 			send_response(conn, HTTP_RESPONSE_USERNAME_NO, NULL);
