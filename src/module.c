@@ -87,6 +87,7 @@ int loong_sso_validate(loong_conn *conn)
 //loongSSO 注册
 int loong_sso_register(loong_conn *conn)
 {
+	const char *k;
 	const char *email;
 	const char *username;
 	const char *password;
@@ -106,6 +107,7 @@ int loong_sso_register(loong_conn *conn)
 	public_code  = tcmapget2(conn->recs, "code");
 	username     = tcmapget2(conn->recs, "username");
 	password     = tcmapget2(conn->recs, "password");
+
 
 //CHINA_USERNAME  允许带中文、字母、数字的用户名
 //ALPHA_USERNAME  允许带字母、数字的用户名

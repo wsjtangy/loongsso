@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <evio_epoll.h>
+#include <loong.h>
 
 
 int evio_epoll_init(struct ev_ct *ct, int max_events)
@@ -83,6 +83,7 @@ int evio_epoll_wait(struct ev_ct *ct, int timeout, int fd, evio_call_accept _acc
             else
             {
 				_client(ct->events[i].data.ptr);
+				loong_conn_exit((loong_conn *)ct->events[i].data.ptr);
             }
         }
     }
