@@ -191,6 +191,36 @@ static void sig_listen(int sig)
 	exit(1);
 }
 
+
+int make_socket() 
+{
+	struct sockaddr_in local_sa;
+	
+	int sock, reuse_addr = 1;
+	
+	sock = socket(PF_INET, SOCK_STREAM, 0);
+	if (sock < 0)
+	{
+		perror("socket");
+		exit(EXIT_FAILURE);
+	}
+	
+	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr));
+	
+	local_sa.sin_family      = AF_INET;
+	local_sa.sin_port        = htons(conf.server_port);
+	local_sa.sin_addr.s_addr = htonl(INADDR_ANY);
+	
+	if (bind(sock, (struct sockaddr*)&local_sa, sizeof(struct sockaddr_in)) < 0) 
+	{
+		perror("Binding socket.");
+		exit(EXIT_FAILURE);
+	}
+	
+	return sock;
+}
+
+
 int main(int argc, char **argv)
 {
     int cfd;
@@ -298,8 +328,12 @@ int main(int argc, char **argv)
 	em.add(&ct, sock_fd, EVIO_IN|EVIO_ET, (void *)&sock_fd);
 #endif
 
-	signal(SIGINT, sig_listen);
 	signal(SIGTERM, sig_listen);
+	signal(SIGINT,  sig_listen);
+	signal(SIGQUIT, sig_listen);
+	signal(SIGSEGV, sig_listen);
+	signal(SIGALRM, sig_listen);
+	signal(SIGPIPE, sig_listen);
 
 	daemon(1, 1);
 	em.wait(&ct, -1, sock_fd, loong_accept, loong_client);
