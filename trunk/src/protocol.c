@@ -149,9 +149,12 @@ int parse_http_header(char *header, size_t header_len, loong_conn *conn)
 			else if(strncasecmp(buff, "Cookie: ", 8) == 0)
 			{
 				cookie     = buff + 8;
-				cookie     = strchr(cookie, '=');
-				conn->code = strtoull(cookie + 1, 0, 10);
-				//memcpy(conn->cookie, cookie + 1, sizeof(conn->cookie));
+				cookie     = strstr(cookie, "loongSSO=");
+				if(cookie != NULL)
+				{
+					conn->code = strtoull(cookie + 9, 0, 10);
+					//memcpy(conn->cookie, cookie + 9, sizeof(conn->cookie));
+				}
 			}
 
 			memset(buff, 0, sizeof(buff));

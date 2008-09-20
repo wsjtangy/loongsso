@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <loong.h>
+#include "hash.h"
 
 //ident.c
 static const unsigned int sizes[] = {
@@ -32,8 +32,8 @@ struct hash
 	unsigned int   records_count;
 };
 
-/*
-int is_timeout(time_t t1)
+
+int _timeout(time_t t1)
 {
 	int n;
 	time_t now;
@@ -49,7 +49,7 @@ int is_timeout(time_t t1)
 	}
 	return 1;
 }
-*/
+
 
 static int hash_grow(hash *h)
 {
@@ -74,7 +74,7 @@ static int hash_grow(hash *h)
 	{
         if (old_recs[i].key)
 		{
-			rc = is_timeout(old_recs[i].lifetime, code_time_out);
+			rc = _timeout(old_recs[i].lifetime);
 			if(rc)
 			{
 				hash_add(h, old_recs[i].key, old_recs[i].value, old_recs[i].lifetime);
@@ -141,7 +141,7 @@ int hash_add(hash *h, uint64_t key, char *value, time_t lifetime)
 
     while (recs[ind].key)
 	{
-		rc = is_timeout(recs[ind].lifetime, code_time_out);
+		rc = _timeout(recs[ind].lifetime);
 		if(!rc)
 		{
 			//超时的记录
@@ -181,7 +181,7 @@ const char *hash_get(hash *h, const uint64_t key)
 
     while (recs[ind].key) 
 	{
-		rc = is_timeout(recs[ind].lifetime, code_time_out);
+		rc = _timeout(recs[ind].lifetime);
 		if(!rc)
 		{
 			//超时的记录,将这条记录置为删除的标志

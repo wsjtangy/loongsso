@@ -47,7 +47,6 @@ void loong_client(void *arg)
 	if(n == -1)
 	{
 		send_response(conn, HTTP_RESPONSE_UNKNOWN_MODULE, NULL);
-		loong_conn_exit(conn);
 		return ;
 	}
 
@@ -55,7 +54,6 @@ void loong_client(void *arg)
 	if(module == NULL)
 	{
 		send_response(conn, HTTP_RESPONSE_UNKNOWN_MODULE, NULL);
-		loong_conn_exit(conn);
 		return ;
 	}
 
@@ -64,13 +62,11 @@ void loong_client(void *arg)
 		if (strcmp(module, loong_cmds[i].cmd_name) == 0) 
 		{
 			loong_cmds[i].cmd_handler(conn);
-			loong_conn_exit(conn);
 			return ;
 		}
 	}
 
 	send_response(conn, HTTP_RESPONSE_UNKNOWN_MODULE, NULL);	
-	loong_conn_exit(conn);
 }
 
 void loong_accept(int sockfd)
@@ -335,7 +331,7 @@ int main(int argc, char **argv)
 	signal(SIGALRM, sig_listen);
 	signal(SIGPIPE, sig_listen);
 
-	daemon(1, 1);
+//	daemon(1, 1);
 	em.wait(&ct, -1, sock_fd, loong_accept, loong_client);
 
 	return 0;
