@@ -51,6 +51,16 @@ int _timeout(time_t t1)
 }
 
 
+/* algorithm djb2 */
+static unsigned int stringhash(const char *str)
+{
+    int c;
+    int hash = 5381;
+    while (c = *str++)
+        hash = hash * 33 + c;
+    return hash == 0 ? 1 : hash;
+}
+
 static int hash_grow(hash *h)
 {
     int i, rc;
@@ -121,9 +131,10 @@ void hash_destroy(hash *h)
 
 int hash_add(hash *h, uint64_t key, char *value, time_t lifetime)
 {
-	int rc;
+	int  rc;
+	char tmp[30];
     struct record *recs;
-    unsigned int off, ind, size;
+    unsigned int off, ind, size, code;
 
     if (key <= 0 ) return -2;	
     if (h->records_count > sizes[h->size_index] * load_factor) 
@@ -131,11 +142,15 @@ int hash_add(hash *h, uint64_t key, char *value, time_t lifetime)
         rc = hash_grow(h);
         if (rc) return rc;
     }
+	
+	memset(&tmp, 0, sizeof(tmp));
+	snprintf(tmp, sizeof(tmp), "%llu", key);
 
     recs = h->records;
     size = sizes[h->size_index];
-
-    ind = key % size;
+	
+	code = stringhash(tmp);
+    ind = code % size;
     off = 0;
 	rc  = 1;
 
@@ -154,7 +169,7 @@ int hash_add(hash *h, uint64_t key, char *value, time_t lifetime)
 			return 0;
 		}
 
-        ind = (key + (int)pow(++off,2)) % size;
+        ind = (code + (int)pow(++off,2)) % size;
 	}
 	
 	recs[ind].key       = key;
@@ -170,13 +185,19 @@ int hash_add(hash *h, uint64_t key, char *value, time_t lifetime)
 
 const char *hash_get(hash *h, const uint64_t key)
 {
-	int rc;
+	int  rc;
+	char tmp[30];
     struct record *recs;
-    unsigned int off, ind, size;
+    unsigned int off, ind, size, code;
 
+
+	memset(&tmp, 0, sizeof(tmp));
+	snprintf(tmp, sizeof(tmp), "%llu", key);
+	
+	code = stringhash(tmp);
     recs = h->records;
     size = sizes[h->size_index];
-    ind  = key % size;
+    ind  = code % size;
     off  = 0;
 
     while (recs[ind].key) 
@@ -193,7 +214,7 @@ const char *hash_get(hash *h, const uint64_t key)
 		{
             return recs[ind].value;
         }
-		ind = (key + (int)pow(++off,2)) % size;
+		ind = (code + (int)pow(++off,2)) % size;
     }
 
     return NULL;
@@ -201,12 +222,17 @@ const char *hash_get(hash *h, const uint64_t key)
 
 int hash_remove(hash *h, const uint64_t key)
 {
+	char   tmp[30];
     struct record *recs;
-    unsigned int off, ind, size;
+    unsigned int off, ind, size, code;
 
+	memset(&tmp, 0, sizeof(tmp));
+	snprintf(tmp, sizeof(tmp), "%llu", key);
+	
+	code = stringhash(tmp);
     recs = h->records;
     size = sizes[h->size_index];
-    ind  = key % size;
+    ind  = code % size;
     off  = 0;
 
     while (recs[ind].key)
@@ -217,7 +243,7 @@ int hash_remove(hash *h, const uint64_t key)
             h->records_count--;
             return 1;
         }
-        ind = (key + (int)pow(++off, 2)) % size;
+        ind = (code + (int)pow(++off, 2)) % size;
     }
  
     return 0;
