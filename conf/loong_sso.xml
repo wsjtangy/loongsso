@@ -18,8 +18,17 @@
 			<id>cellphp</id>                                                               <!-- 应用的ID 识别号 -->
 			<key>loongSSO_CELLPHP_KEY</key>                                                <!-- 数据传输的数字签名的 私钥 -->
 			<update_key>loongSSO_UPDATE_CELLPHP_KEY</update_key>                           <!-- 更新或删除数据的 数字签名的 私钥 -->
-			<login>http://www.xxxabc.cn:8080/new/callback.php?action=login</login>         <!-- 要调用的登陆页面 -->
-			<logout>http://www.xxxabc.cn:8080/new/callback.php?action=logout</logout>      <!-- 要调用的退出页面 -->
+			<login>http://www.xxxabc.cn:8080/login.php</login>         <!-- 要调用的登陆页面 -->
+			<logout>http://www.xxxabc.cn:8080/logout.php</logout>      <!-- 要调用的退出页面 -->
+			<update>http://www.xxxabc.cn:8080/new/callback.php?action=update</update>      <!-- 修改用户,通知的页面 -->
+			<delete>http://www.xxxabc.cn:8080/new/callback.php?action=delete</delete>      <!-- 删除用户,通知的页面 -->
+		</list>
+		<list>
+			<id>315togo</id>                                                               <!-- 应用的ID 识别号 -->
+			<key>loongSSO_315TOGO_XX_KEY</key>                                                <!-- 数据传输的数字签名的 私钥 -->
+			<update_key>loongSSO_UPDATE_CELLPHP_KEY</update_key>                           <!-- 更新或删除数据的 数字签名的 私钥 -->
+			<login>http://www.chinatoyshop.net/asp/login.asp</login>         <!-- 要调用的登陆页面 -->
+			<logout>http://www.chinatoyshop.net/asp/logout.asp</logout>      <!-- 要调用的退出页面 -->
 			<update>http://www.xxxabc.cn:8080/new/callback.php?action=update</update>      <!-- 修改用户,通知的页面 -->
 			<delete>http://www.xxxabc.cn:8080/new/callback.php?action=delete</delete>      <!-- 删除用户,通知的页面 -->
 		</list>

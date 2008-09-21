@@ -222,6 +222,7 @@ int main(int argc, char **argv)
     int cfd;
     char sql[512];
 	int flags = 1;
+	int reuse_addr = 1;
     int n, i, rc, sql_len;
 	struct eph_comm *conn;
     struct sockaddr_in addr;
@@ -299,6 +300,8 @@ int main(int argc, char **argv)
         return 1;
     }
     
+	setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr));
+
     addr.sin_family      = AF_INET;
     addr.sin_port        = htons(conf.server_port);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -331,7 +334,7 @@ int main(int argc, char **argv)
 	signal(SIGALRM, sig_listen);
 	signal(SIGPIPE, sig_listen);
 
-//	daemon(1, 1);
+	daemon(1, 1);
 	em.wait(&ct, -1, sock_fd, loong_accept, loong_client);
 
 	return 0;
