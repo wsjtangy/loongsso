@@ -92,5 +92,5 @@ cp loong "${ROOT_PATH}/sbin/";
 cp -r ./conf/ $ROOT_PATH;  
 cp -r ./font/ $ROOT_PATH;  
 echo "Installed in ${ROOT_PATH}"; 
-rm $OBJS _config.h loong;
+rm -rf $OBJS _config.h loong;
 
