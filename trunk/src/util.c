@@ -9,9 +9,11 @@
 #include <sys/uio.h>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
 #include <loong.h>
 
 int MD5String(char *str, char *hex_output)
@@ -85,6 +87,48 @@ bool is_ch_username(unsigned char *str)
 
 	return true;
 }
+
+int make_socket() 
+{
+	struct sockaddr_in addr;
+	
+	int sock, reuse_addr = 1;
+	
+
+	sock = socket(AF_INET, SOCK_STREAM, 0);    
+    if (sock == -1)
+    {
+        perror("socket error :");
+        exit(EXIT_FAILURE);
+    }
+    
+	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr));
+
+    addr.sin_family      = AF_INET;
+    addr.sin_port        = htons(conf.server_port);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    if (bind (sock, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+    {
+		perror("bind error :");
+		exit(EXIT_FAILURE);
+    }
+
+	listen(sock, SOMAXCONN);
+
+	return sock;
+}
+
+int set_nonblocking(int sock)
+{
+	int flags = 1;
+
+	if (ioctl(sock, FIONBIO, &flags) && ((flags = fcntl(sock, F_GETFL, 0)) < 0 || fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0)) 
+	{
+		return 0;
+	}
+	return 1;
+}
+
 
 bool is_mail(const char *str)
 {

@@ -5,6 +5,8 @@
 //生成验证码的 随机号ID
 uint64_t ident_key();
 
+int make_socket();
+
 char *long2ip(unsigned int v);
 
 unsigned int ip2long(char *s);
@@ -18,6 +20,8 @@ bool is_mail_exists(const char *str);
 int daemon(int nochdir, int noclose);
 
 unsigned int strhash(const char *str);
+
+int set_nonblocking(int sock);
 
 //是否超时
 bool is_timeout(time_t t1, int minute);

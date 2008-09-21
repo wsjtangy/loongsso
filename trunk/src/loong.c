@@ -73,7 +73,7 @@ void loong_accept(int sockfd)
 {
 
 	loong_conn *conn;
-	int clilen, cfd, flags = 1;
+	int clilen, cfd;
 	struct sockaddr_in clientaddr;
 	
 	clilen = sizeof(clientaddr);
@@ -91,11 +91,7 @@ void loong_accept(int sockfd)
 		}
 	}
 
-	if (ioctl(cfd, FIONBIO, &flags) && ((flags = fcntl(cfd, F_GETFL, 0)) < 0 || fcntl(cfd, F_SETFL, flags | O_NONBLOCK) < 0)) 
-	{
-		close(cfd);
-		return ;
-	}
+	set_nonblocking(cfd);
 
 	conn          = (loong_conn *)malloc(sizeof(loong_conn));
 	conn->sfd     = cfd;
@@ -188,44 +184,12 @@ static void sig_listen(int sig)
 }
 
 
-int make_socket() 
-{
-	struct sockaddr_in local_sa;
-	
-	int sock, reuse_addr = 1;
-	
-	sock = socket(PF_INET, SOCK_STREAM, 0);
-	if (sock < 0)
-	{
-		perror("socket");
-		exit(EXIT_FAILURE);
-	}
-	
-	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr));
-	
-	local_sa.sin_family      = AF_INET;
-	local_sa.sin_port        = htons(conf.server_port);
-	local_sa.sin_addr.s_addr = htonl(INADDR_ANY);
-	
-	if (bind(sock, (struct sockaddr*)&local_sa, sizeof(struct sockaddr_in)) < 0) 
-	{
-		perror("Binding socket.");
-		exit(EXIT_FAILURE);
-	}
-	
-	return sock;
-}
-
-
 int main(int argc, char **argv)
 {
     int cfd;
     char sql[512];
-	int flags = 1;
-	int reuse_addr = 1;
+	int sockfd;
     int n, i, rc, sql_len;
-	struct eph_comm *conn;
-    struct sockaddr_in addr;
 	my_bool reconnect = 0;
 	
 
@@ -290,41 +254,18 @@ int main(int argc, char **argv)
 		sig_listen(0);
 		return 0;
 	}
+	
+	daemon(1, 1);
 
-    
-    sock_fd = socket(AF_INET, SOCK_STREAM, 0);    
-    if (sock_fd == -1)
-    {
-        perror("socket error :");
-		sig_listen(0);
-        return 1;
-    }
-    
-	setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr));
-
-    addr.sin_family      = AF_INET;
-    addr.sin_port        = htons(conf.server_port);
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    if (bind (sock_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
-    {
-		perror("bind error :");
-		sig_listen(0);
-        return 1;
-    }
-
-    listen(sock_fd, 8192);
-
-	if (ioctl(sock_fd, FIONBIO, &flags) && ((flags = fcntl(sock_fd, F_GETFL, 0)) < 0 || fcntl(sock_fd, F_SETFL, flags | O_NONBLOCK) < 0)) 
-	{
-		sig_listen(0);
-		return -1;
-	}
+	sockfd = make_socket();
+ 
+	set_nonblocking(sockfd);
 
     em.init(&ct, MAX_DEFAULT_FDS);
 #ifdef HAVE_SYS_EVENT_H
-	em.add(&ct, sock_fd, EVIO_IN, (void *)&sock_fd);
+	em.add(&ct, sockfd, EVIO_IN, (void *)&sockfd);
 #elif HAVE_SYS_EPOLL_H
-	em.add(&ct, sock_fd, EVIO_IN|EVIO_ET, (void *)&sock_fd);
+	em.add(&ct, sockfd, EVIO_IN|EVIO_ET, (void *)&sockfd);
 #endif
 
 	signal(SIGTERM, sig_listen);
@@ -334,8 +275,7 @@ int main(int argc, char **argv)
 	signal(SIGALRM, sig_listen);
 	signal(SIGPIPE, sig_listen);
 
-	daemon(1, 1);
-	em.wait(&ct, -1, sock_fd, loong_accept, loong_client);
+	em.wait(&ct, -1, sockfd, loong_accept, loong_client);
 
 	return 0;
 }
