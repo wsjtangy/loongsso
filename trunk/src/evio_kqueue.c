@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <evio_kqueue.h>
+#include <loong.h>
 
 int evio_kqueue_init(struct ev_ct *ct, int max_events) 
 {
@@ -100,6 +100,7 @@ int evio_kqueue_wait(struct ev_ct *ct, int timeout, int fd, evio_call_accept _ac
             else
             {
 				_client(ct->events[i].udata);
+				loong_conn_exit((loong_conn *)ct->events[i].udata);
             }
 		}
 	}
