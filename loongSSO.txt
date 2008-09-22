@@ -98,7 +98,7 @@ loong SSO server一共有7个可外部访问模块, loong SSO返回值 都是 js变量loong_status
 
 一. login 用户登陆
 
-http://loong_soo_server:7171/?module=login&type=user&username=用户名&password=密码
+http://www.cellphp.com:7171/?module=login&type=user&username=用户名&password=密码
 
 Loong SSO会返回一个js变量 例如: loong_status = 7;  客户端可以通过返回的loong_status的值,来判断登陆是否成功
 
@@ -115,24 +115,37 @@ loong_info=urlencode(用户信息)
 loong_info这个参数当登陆或注册成功的话。就会返回这个用户信息的参数.这个参数是由用户id、用户名、mail、ip、注册时间,数据组成的。例子"id:1221977105676421724|username:七夜|mail:lijinxing@Gmail.com|ip:1026652280|time:1221977102|"
 loong_info接受的时候,需要urldecode进行解码。数据字符串需要自己解析成数组。可以参考PHP和ASP的解析例子
 
+id       : 为 bigint 19位整形组成
+username : 用户名
+mail     : email
+ip       : ip2long(ip)  整形
+time     : UNIX时间戳
+
+
 loong_time=[UNIX时间戳]
 loong_time是loong SSO 回调客户端的时间.客户端可以作超时处理。防止恶意刷新
 
 loong_sign=[32位的MD5编码]
 loong_sign是loong SSO的数字签名。防止数据被篡改
-loong_sign = "KEY|urldecode(loong_info)|loong_time" loong_sign是由这三个参数组成的
+loong_sign = "PRIVATE_KEY|urldecode(loong_info)|loong_time" loong_sign 是由这三个参数组成的
 
 
 二. register 用户注册
 
+http://www.cellphp.com:7171/?module=register&code=jw6w&username=qiye&password=123456&email=lijinxing@gmail.com
+
+code     = 验证码
+username = 要注册的用户名
+password = 要注册的密码
+email    = 要注册的email
 
 三. logout 用户退出
 
-http://loong_soo_server:7171/?module=logout 用户退出,只要请求这个URL API就行
+http://www.cellphp.com:7171/?module=logout 用户退出,只要请求这个URL API就行
 
 四. validate获取验证码
 
-http://loong_soo_server:7171/?module=validate 获取验证码,只要请求这个URL API就行
+http://www.cellphp.com:7171/?module=validate 获取验证码,只要请求这个URL API就行
 
 
 五. check 用户数据判断是否存在
@@ -142,10 +155,29 @@ type=[mail|user]
 mail 验证 email 是否已经被注册
 user 验证 user  是否已经被注册
 
-http://loong_soo_server:7171/?module=check&type=mail&data=lijinxing@Gmail.com   
-http://loong_soo_server:7171/?module=check&type=user&data=qiye
+http://www.cellphp.com:7171/?module=check&type=mail&data=lijinxing@Gmail.com   
+http://www.cellphp.com:7171/?module=check&type=user&data=qiye
 
+loong SSO 返回 loong_status
 
 六. delete 删除用户数据
 
+$time = time();
+$uid  = "1221114827229291379";
+$sign = md5(PRIVATE_UPDATE_KEY."|".$uid."|".$time);
+http://www.cellphp.com:7171/?module=delete&mode=cellphp&uid=1221114827229291379&now=1222099972&sign=0826a3b49720a3769c651a3da53bf2db
+
+uid  : 要删除的用户id
+mode : loong_sso.xml 里面的 <site> <list> <id>cellphp</id> </list> </site>
+
 七. update 更新用户数据
+
+$time     = time();
+$uid      = "1221114827229291379";
+$email    = "lijinxing17@163.com";
+$username = "liuxing";
+$password = "okokok";
+
+$sign = md5(PRIVATE_UPDATE_KEY."|".$uid."|".$username."|".$password."|".$email."|".$time);
+
+http://www.cellphp.com:7171/?module=update&mode=cellphp&uid=1221114827229291379&username=liuxing&password=okokok&email=lijinxing17@163.com&now=1222100429&sign=03437c8d1aa4198dec968be7f5d95aa3
