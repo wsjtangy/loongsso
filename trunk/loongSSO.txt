@@ -97,20 +97,46 @@ loong SSO server一共有7个可外部访问模块
 
 一. login 用户登陆
 
-http://domain:7171/?module=login&type=user&username=用户名&password=密码
+http://loong_soo_server:7171/?module=login&type=user&username=用户名&password=密码
 
 Loong SSO会返回一个js变量 例如: loong_status = 7;  客户端可以通过返回的loong_status的值,来判断登陆是否成功
 
-http://www.cellphp.com/callback.php?loong_type=login&loong_info=id%3A1219852990313767000%7Cusername%3Alijinxing%7Cnickname%3A%E4%B8%83%E5%A4%9C%7Cmail%3Alijinxing@gmail.com%7Cip%3A3702863970%7Ctime%3A1219852990%7C&loong_time=1221835008&loong_sign=73fc15e7bf44a3d6d351070d20fb918b&rand=0.09186558001078082
+http://loong_soo_client.com/callback.php?loong_type=login&loong_info=id%3A1219852990313767000%7Cusername%3Alijinxing%7Cnickname%3A%E4%B8%83%E5%A4%9C%7Cmail%3Alijinxing@gmail.com%7Cip%3A3702863970%7Ctime%3A1219852990%7C&loong_time=1221835008&loong_sign=73fc15e7bf44a3d6d351070d20fb918b&rand=0.09186558001078082
 
 loong sso 会回调在 loong_sso.xml配置文件里 客户端 回调URL
 
-当注册成功后
+注册成功后回调参数説明
 
-二.
+loong_type=[register|login] 两个值
+当你使用注册或登陆的API的时候,就会有这个参数loong_type. 这个参数告诉客户端是什么操作类型.比如我使用的是 注册API. loong_type=register
+loong_info=urlencode(用户信息)
+
+loong_info这个参数当登陆或注册成功的话。就会返回这个用户信息的参数.这个参数是由用户id、用户名、mail、ip、注册时间,数据组成的。例子"id:1221977105676421724|username:七夜|mail:lijinxing@Gmail.com|ip:1026652280|time:1221977102|"
+loong_info接受的时候,需要urldecode进行解码。数据字符串需要自己解析成数组。可以参考PHP和ASP的解析例子
+
+loong_time=[UNIX时间戳]
+loong_time是loong SSO 回调客户端的时间.客户端可以作超时处理。防止恶意刷新
+
+loong_sign=[32位的MD5编码]
+loong_sign是loong SSO的数字签名。防止数据被篡改
+loong_sign = "KEY|urldecode(loong_info)|loong_time" loong_sign是由这三个参数组成的
+
+
+二. register 用户注册
+
+
+三. logout 用户退出
+
+http://loong_soo_server:7171/?module=logout 用户退出,只要请求这个URL API就行
+
+四.获取验证码
+
+http://loong_soo_server:7171/?module=validate 获取验证码,只要请求这个URL API就行
+
+
 check
 3. update
 4. delete
-5. logout
-6. validate
+5. 
+
 7. register
