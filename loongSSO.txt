@@ -93,7 +93,8 @@ HTTP_RESPONSE_USERNAME_NOT_EXISTS      用户名不存在
 
 loong SSO server和 client 使用 HTTP协议通讯, 服务端根据客户端的请求会返回不同的状态码.
 
-loong SSO server一共有7个可外部访问模块
+loong SSO server一共有7个可外部访问模块, loong SSO返回值 都是 js变量loong_status的值,客户端判断的是否请求成功。获取loong_status 根据状态码做出回应
+
 
 一. login 用户登陆
 
@@ -129,14 +130,22 @@ loong_sign = "KEY|urldecode(loong_info)|loong_time" loong_sign是由这三个参数组成
 
 http://loong_soo_server:7171/?module=logout 用户退出,只要请求这个URL API就行
 
-四.获取验证码
+四. validate获取验证码
 
 http://loong_soo_server:7171/?module=validate 获取验证码,只要请求这个URL API就行
 
 
-check
-3. update
-4. delete
-5. 
+五. check 用户数据判断是否存在
 
-7. register
+type=[mail|user]
+
+mail 验证 email 是否已经被注册
+user 验证 user  是否已经被注册
+
+http://loong_soo_server:7171/?module=check&type=mail&data=lijinxing@Gmail.com   
+http://loong_soo_server:7171/?module=check&type=user&data=qiye
+
+
+六. delete 删除用户数据
+
+七. update 更新用户数据
