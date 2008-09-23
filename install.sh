@@ -36,13 +36,11 @@ fi
 OS=$(uname)
 
 
-#CFLAGS="-O2 -fno-guess-branch-probability -DHAVE_SYS_EVENT_H";
-#SRCS="./src/estring.c ./src/loong_log.c ./src/module.c ./src/protocol.c ./src/util.c ./src/evio_kqueue.c ./src/hash.c ./src/md5.c ./src/parse_conf.c  ./src/sxml.c";
-#OBJS="estring.o  md5.o  sxml.o loong_log.o module.o protocol.o util.o evio_kqueue.o hash.o parse_conf.o";
+CFLAGS="-O2 -fno-guess-branch-probability -DHAVE_SYS_EVENT_H";
+SRCS="./src/estring.c ./src/loong_log.c ./src/module.c ./src/protocol.c ./src/util.c ./src/evio_kqueue.c ./src/hash.c ./src/md5.c ./src/parse_conf.c  ./src/sxml.c";
+OBJS="estring.o  md5.o  sxml.o loong_log.o module.o protocol.o util.o evio_kqueue.o hash.o parse_conf.o";
 
-CFLAGS="-O2 -fno-guess-branch-probability -DHAVE_SYS_EPOLL_H";
-SRCS="./src/estring.c ./src/loong_log.c ./src/module.c ./src/protocol.c ./src/util.c ./src/evio_epoll.c ./src/hash.c ./src/md5.c ./src/parse_conf.c  ./src/sxml.c";
-OBJS="estring.o  md5.o  sxml.o loong_log.o module.o protocol.o util.o evio_epoll.o hash.o parse_conf.o";
+
 LIBS="-L${CACHE_PATH}/lib -L${GD_PATH}/lib -L${DB_PATH}/lib/mysql"
 INCLUDE="-I./ -I./include -I${CACHE_PATH}/include -I${GD_PATH}/include -I${DB_PATH}/include/mysql"
 MYLIB="-lmysqlclient -lgd -ltokyocabinet -lrt"
