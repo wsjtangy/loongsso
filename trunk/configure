@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+#./configure --prefix=/home/lijinxing/loong --gd=/usr/local/gd2 --mysql=/usr/local/mysql --cache=/usr/local/tokyocabinet --user=2 --table=10
 #./getopt.sh --foo=bar -v -n 10 blah -one='last arg'
 #http://blog.apokalyptik.com/files/bash-getopt/getopt.sh
 
