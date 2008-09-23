@@ -92,7 +92,7 @@ bool is_ch_username(unsigned char *str)
 int make_socket() 
 {
 	struct sockaddr_in addr;
-	
+	struct linger ling = {0, 0};	
 	int sock, reuse_addr = 1;
 	
 
@@ -104,6 +104,9 @@ int make_socket()
     }
     
 	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse_addr, sizeof(reuse_addr));
+	setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &reuse_addr, sizeof(flags));
+	setsockopt(sock, SOL_SOCKET, SO_LINGER,    &ling,       sizeof(ling));
+
 
     addr.sin_family      = AF_INET;
     addr.sin_port        = htons(conf.server_port);
