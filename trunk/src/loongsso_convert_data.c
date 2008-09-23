@@ -10,6 +10,7 @@
 
 struct parameter
 {
+	int    mode;
 	size_t port;
 	size_t chunk;
 	char   host[100];
@@ -36,6 +37,7 @@ int main( int argc, char *argv[])
 
 	memset(&p, 0, sizeof(p));
 	
+	p.mode  = 0;
 	p.port  = 3306;
 	p.chunk = 10;
 
@@ -46,6 +48,7 @@ int main( int argc, char *argv[])
             { "host",     required_argument, 0, 'o' },
 			{ "port",     required_argument, 0, 'r' },
 			{ "help",     no_argument,       0, 'h' },
+			{ "mode",     no_argument,       0, 'm' },
 			{ "chunk",    required_argument, 0, 'c' },
 			{ "table",    required_argument, 0, 't' },
 			{ "fields",   required_argument, 0, 'f' },
@@ -103,6 +106,9 @@ int main( int argc, char *argv[])
                 break;
 			case 'r':
 				p.port  = atoi(optarg);
+                break;
+			case 'm':
+				p.mode  = 1;
                 break;
             default:
                 break;
