@@ -11,6 +11,7 @@
 #define DATA_BUFFER_SIZE   1024
 #define MAX_DEFAULT_FDS    10000
 
+typedef struct loong_conn_struct loong_conn;
 
 typedef enum 
 {
@@ -21,7 +22,7 @@ typedef enum
 } http_method;
 
 
-typedef struct
+struct loong_conn_struct
 {
 	int          sfd;
 	time_t       now;
@@ -30,7 +31,12 @@ typedef struct
 	uint32_t     events;
 	http_method  method;
 	char         ip[16];
-}loong_conn;
+	struct {
+		void (*timeout_handler)(loong_conn *conn);
+		void (*read_handler)(loong_conn *conn);
+		void (*write_handler)(loong_conn *conn);
+	}ops;
+};
 
 struct loong_passwd
 {
