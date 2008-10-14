@@ -198,7 +198,7 @@ int request_parse(char *req_ptr, size_t req_len, int fd)
 					uri  = strrchr(conn->req.filepath, '/');
 					if(uri)
 					{
-						uri += 1;
+						uri++;
 						parse_query(uri, conn->req.uri, sizeof(conn->req.uri), conn->req.query_ptr, sizeof(conn->req.query_ptr));
 					}
 				}
