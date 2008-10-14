@@ -113,6 +113,10 @@ int request_parse(char *req_ptr, size_t req_len, int fd)
 	req_end = req_ptr + req_len;
 	conn    = &server.conn[fd];
 
+	memset(&conn->req.uri, 0, sizeof(conn->req.uri));
+	memset(&conn->req.query_ptr, 0, sizeof(conn->req.query_ptr));
+	memset(&conn->req.filepath, 0, sizeof(conn->req.filepath));
+
 	for (line_end = ptr;ptr < req_end;ptr++) 
 	{
 		if (ptr >= line_end) 
@@ -202,7 +206,7 @@ int request_parse(char *req_ptr, size_t req_len, int fd)
 						parse_query(uri, conn->req.uri, sizeof(conn->req.uri), conn->req.query_ptr, sizeof(conn->req.query_ptr));
 					}
 				}
-				
+
 				ptr = line_end;
 				break;
 		}
