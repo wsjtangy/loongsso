@@ -25,37 +25,58 @@ const char *mimetype(const char *filename)
 {
 	static const char *(assocNames[][2]) =
 	{
-		{ "html", "text/html" },
-		{ "htm", "text/html" },
-		{ "txt", "text/plain" },
-		{ "css", "text/css" },
-		{ "png", "image/png" },
-		{ "gif", "image/gif" },
-		{ "jpg", "image/jpeg" },
-		{ "jpeg", "image/jpeg" },
-		{ "bmp", "image/bmp" },
-		{ "mp3", "audio/mpeg" },
-		{ "mp2", "audio/mpeg" },
-		{ "mpga", "audio/mpeg" },
-		{ "wav", "audio/x-wav" },
-		{ "mid", "audio/midi" },
-		{ "midi", "audio/midi" },
-		{ "ra", "audio/x-pn-realaudio" },
-		{ "ram", "audio/x-pn-realaudio" },
-		{ "mpeg", "video/mpeg" },
-		{ "mpg", "video/mpeg" },
-		{ "mpe", "video/mpeg" },
-		{ "avi", "video/x-msvideo" },
-		{ "xml", "application/xml" },
-		{ "xsl", "application/xml" },
-		{ "xslt", "application/xslt-xml" },
-		{ "xhtml", "application/xhtml+xml" },
-		{ "xht", "application/xhtml+xml" },
-		{ "dtd", "application/xml-dtd" },
-		{ "js", "application/x-javascript" },
-		{ "tar", "application/x-tar" },
-		{ "zip", "application/x-zip" },
-		{ "", "application/octet-stream" } // must be last entry!
+		{ "c",       "text/plain"                         },
+		{ "js",      "text/javascript"                    },
+		{ "gz",      "application/x-gzip"                 },
+		{ "ps",      "application/postscript"             },
+		{ "pdf",     "application/pdf"                    },
+		{ "dvi",     "application/x-dvi"                  },
+		{ "tgz",     "application/x-tgz"                  },
+		{ "tar",     "application/x-tar"                  },
+		{ "zip",     "application/zip"                    },
+		{ "mp3",     "audio/mpeg"                         },
+		{ "m3u",     "audio/x-mpegurl"                    },
+		{ "wma",     "audio/x-ms-wma"                     },
+		{ "wax",     "audio/x-ms-wax"                     },
+		{ "ogg",     "application/ogg"                    },
+		{ "wav",     "audio/x-wav"                        },
+		{ "gif",     "image/gif"                          },
+		{ "jar",     "application/x-java-archive"         },
+		{ "jpg",     "image/jpeg"                         },
+		{ "jpeg",    "image/jpeg"                         },
+		{ "png",     "image/png"                          },
+		{ "xbm",     "image/x-xbitmap"                    },
+		{ "xpm",     "image/x-xbitmap"                    },
+		{ "xwd",     "image/x-xwindowdump"                },
+		{ "css",     "text/css"                           },
+		{ "asc",     "text/plain"                         },
+		{ "cpp",     "text/plain"                         },
+		{ "htm",     "text/html"                          },
+		{ "html",    "text/html"                          },
+		{ "log",     "text/plain"                         },
+		{ "txt",     "text/plain"                         },
+		{ "conf",    "text/plain"                         },
+		{ "dtd",     "text/xml"                           },
+		{ "xml",     "text/xml"                           },
+		{ "mov",     "video/quicktime"                    },
+		{ "mpg",     "video/mpeg"                         },
+		{ "mpeg",    "video/mpeg"                         },
+		{ "qt",      "video/quicktime"                    },
+		{ "avi",     "video/x-msvideo"                    },
+		{ "asf",     "video/x-ms-asf"                     },
+		{ "asx",     "video/x-ms-asf"                     },
+		{ "wmv",     "video/x-ms-wmv"                     },
+		{ "bz2",     "application/x-bzip"                 },
+		{ "tbz",     "application/x-bzip-compressed-tar"  },
+		{ "sig",     "application/pgp-signature"          },
+		{ "spl",     "application/futuresplash"           },
+		{ "swf",     "application/x-shockwave-flash"      },
+		{ "pac",     "application/x-ns-proxy-autoconfig"  },
+		{ "class",   "application/octet-stream"           },
+		{ "tar.gz",  "application/x-tgz"                  },
+		{ "torrent", "application/x-bittorrent"           },
+		{ "tar.bz2", "application/x-bzip-compressed-tar"  },
+		{ "",        "application/octet-stream"           }
 	};
 
 	const char *((*anp)[2]);
@@ -66,7 +87,7 @@ const char *mimetype(const char *filename)
 	{
 		suffix++;
 		for (anp=assocNames; strlen((*anp)[0])>0; anp++)
-			if (!strcmp((*anp)[0],suffix)) break;
+			if (!strcmp((*anp)[0], suffix)) break;
 	}
 
 	return (*anp)[1];
@@ -297,6 +318,8 @@ void http_request_read(int fd)
 int main(int argc, char *argv[])
 {
 //	daemon(1, 1);
+	
+//	printf("ext = %s\r\n", mimetype("/www/core/thread-1271438-1-1.html"));
 
 	sock_init();
 	sock_epoll_wait(-1);
