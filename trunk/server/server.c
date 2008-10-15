@@ -330,15 +330,12 @@ void http_request_write(int fd)
 		http_reply_header(recs, conn);
 		return ;
 	}
-	rc = file_load_memory(filename);
-	if(rc)
+	rc   = file_load_memory(filename);
+	recs = hashmap_get(memdisk, filename);
+	if(rc && recs)
 	{
-		recs = hashmap_get(memdisk, filename);
-		if(recs)
-		{
-			http_reply_header(recs, conn);
-			return ;
-		}
+		http_reply_header(recs, conn);
+		return ;
 	}
 
 	bytes = send(conn->fd, BUFFER, strlen(BUFFER), 0);
