@@ -3,7 +3,6 @@
 
 #include <time.h>
 #include <sys/time.h>
-#include <sys/stat.h>
 #include "sock_epoll.h"
 
 #define  MAX_FD        4096
@@ -29,14 +28,12 @@ typedef enum
 
 struct request
 {
-	int fd;
 	int keep_alive;
 	
 	char uri[50];
 	char filepath[300];
 	char query_ptr[256];
 	
-	struct stat    filestats;
 	unsigned int   status_code;
 	http_version_t http_version;
 	http_method_t  http_method;
@@ -55,6 +52,7 @@ struct server_t
 	int             maxfd;
 	int             listen_fd;
 	short           port;
+	char            *root;
 	struct conn_t   *conn;
 };
 
