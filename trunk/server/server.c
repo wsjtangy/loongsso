@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/sendfile.h>
 #include "server.h"
 #include "sock_io.h"
 
@@ -113,9 +114,9 @@ int request_parse(char *req_ptr, size_t req_len, int fd)
 	req_end = req_ptr + req_len;
 	conn    = &server.conn[fd];
 
-	memset(&conn->req.uri, 0, sizeof(conn->req.uri));
+	memset(&conn->req.uri,       0, sizeof(conn->req.uri));
+	memset(&conn->req.filepath,  0, sizeof(conn->req.filepath));
 	memset(&conn->req.query_ptr, 0, sizeof(conn->req.query_ptr));
-	memset(&conn->req.filepath, 0, sizeof(conn->req.filepath));
 
 	for (line_end = ptr;ptr < req_end;ptr++) 
 	{

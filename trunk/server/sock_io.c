@@ -62,6 +62,7 @@ void sock_init()
 	server.port      = 8888;
 	server.maxfd     = 0;
 	server.listen_fd = -1;
+	server.root      = "/home/lijinxing/www";
 	server.conn      = calloc(MAX_FD, sizeof(struct conn_t));
 	
 	sock_epoll_init();
