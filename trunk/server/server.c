@@ -285,12 +285,14 @@ void http_request_accept(int fd)
 
 void http_reply_header(const struct record *recs, struct conn_t *conn)
 {
+	ssize_t bytes;
 	int  header_len;
 	char header[400];
 	char timebuf[100];
 	char lastime[100];
 	struct iovec vectors[2];
-
+	
+	bytes = 0;
 	memset(&header, 0, sizeof(header));
 	memset(&timebuf, 0, sizeof(timebuf));
 	memset(&lastime, 0, sizeof(lastime));
@@ -306,8 +308,8 @@ void http_reply_header(const struct record *recs, struct conn_t *conn)
 	vectors[1].iov_base = recs->content;
 	vectors[1].iov_len  = recs->length;
 
-	writev(conn->fd, vectors, 2);
-
+	bytes = writev(conn->fd, vectors, 2);
+	if(bytes <= 0) sock_close(fd);
 }
 
 void http_request_write(int fd)
@@ -339,11 +341,7 @@ void http_request_write(int fd)
 	}
 
 	bytes = send(conn->fd, BUFFER, strlen(BUFFER), 0);
-	if(bytes <= 0)
-	{
-		sock_close(fd);
-		return ;
-	}
+	if(bytes <= 0) sock_close(fd);
 }
 
 void http_request_read(int fd)
