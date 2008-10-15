@@ -325,3 +325,17 @@ int main(int argc, char *argv[])
 	sock_epoll_wait(-1);
 	return 0;
 }
+
+/*
+
+HTTP/1.1 200 OK
+Server: qiye/RC1.2
+Date: Wed, 15 Oct 2008 09:26:37 GMT
+Content-Type: application/x-javascript
+Content-Length: 7750
+Last-Modified: Mon, 15 Sep 2008 08:42:04 GMT
+Connection: keep-alive
+Accept-Ranges: bytes
+
+*/
+
