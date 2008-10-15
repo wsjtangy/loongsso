@@ -62,7 +62,7 @@ void sock_init()
 	server.port      = 8888;
 	server.maxfd     = 0;
 	server.listen_fd = -1;
-	server.root      = "/home/lijinxing/www";
+	server.root      = "/home/lijinxing/server";
 	server.conn      = calloc(MAX_FD, sizeof(struct conn_t));
 	
 	sock_epoll_init();
@@ -96,9 +96,6 @@ void fd_open(int fd)
 	}
 	
 	sock_set_options(fd);
-//	sock_set_linger(fd);
-//	sock_set_noblocking(fd);
-//	sock_set_cork(fd);
 }
 
 static void fd_close(int fd)

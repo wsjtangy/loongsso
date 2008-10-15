@@ -6,7 +6,7 @@ typedef struct hashmap hashmap;
 
 struct record 
 {
-    char    path[128];       //文件路径
+    char    path[200];       //文件路径
     void    *content;        //文件内容
 	time_t  file_time;       //文件的最后修改时间
 	time_t  visit_time;      //最后被发送的时间
