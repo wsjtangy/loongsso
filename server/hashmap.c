@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <string.h>
 #include "server.h"
-#include "hashmap.h"
 
 
 static const unsigned int sizes[] = {
@@ -85,6 +84,18 @@ hashmap *hashmap_new(unsigned int capacity)
 
 void hashmap_destroy(hashmap *h)
 {
+	int i;
+	struct record *recs;
+	unsigned int  recs_length;
+	
+	recs        = h->records;
+    recs_length = sizes[h->size_index];
+    
+    for (i=0; i < recs_length; i++)
+	{
+        if (recs[i].hash) safe_free(recs[i].content);
+	}
+
     safe_free(h->records);
     safe_free(h);
 }
@@ -111,6 +122,7 @@ int hashmap_add(hashmap *h, char *path, void *content, unsigned int length, time
 
     while (recs[ind].hash)
 	{
+		if ((code == recs[ind].hash) && strcmp(path, recs[ind].path) == 0) return 0;
         ind = (code + (int)pow(++off,2)) % size;
 	}
 	
@@ -127,7 +139,7 @@ int hashmap_add(hashmap *h, char *path, void *content, unsigned int length, time
 	h->length += length;
 	h->records_count++;
 
-    return 0;
+    return 1;
 }
 
 const struct record *hashmap_get(hashmap *h, const char *path)

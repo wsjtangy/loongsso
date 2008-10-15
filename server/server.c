@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/uio.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -14,9 +16,9 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/select.h>
-#include <sys/sendfile.h>
 #include "server.h"
 #include "sock_io.h"
+
 
 #define BUFFER "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\nContent-Type: text/html\r\n\r\nHello"
 
@@ -237,6 +239,31 @@ int request_parse(char *req_ptr, size_t req_len, int fd)
 	return 1;
 }
 
+int file_load_memory(char *filename)
+{
+	int fd;
+	struct stat sbuf;
+	unsigned char *buf;
+
+	fd = open(filename, O_RDONLY);
+	if(fd == -1) return 0;
+
+	fstat(fd, &sbuf);
+
+	buf = calloc(sbuf.st_size + 1, sizeof(unsigned char));
+	if(!buf)
+	{
+		close(fd);
+		return 0;
+	}
+
+	read(fd, buf, sbuf.st_size);
+	close(fd);
+
+	hashmap_add(memdisk, filename, buf, sbuf.st_size, sbuf.st_mtime);
+
+	return 1;
+}
 
 void http_request_accept(int fd)
 {
@@ -256,12 +283,65 @@ void http_request_accept(int fd)
 	sock_epoll_add(client_fd, EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP);
 }
 
+void http_reply_header(const struct record *recs, struct conn_t *conn)
+{
+	int  header_len;
+	char header[400];
+	char timebuf[100];
+	char lastime[100];
+	struct iovec vectors[2];
+
+	memset(&header, 0, sizeof(header));
+	memset(&timebuf, 0, sizeof(timebuf));
+	memset(&lastime, 0, sizeof(lastime));
+	
+	strftime(timebuf, sizeof(timebuf), RFC1123, localtime(&conn->now));
+	strftime(lastime, sizeof(lastime), RFC1123, localtime(&recs->file_time));
+
+	header_len = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nServer: qiye/RC1.2\r\nDate: %s\r\nContent-Type: %s\r\nContent-Length: %u\r\nLast-Modified: %s\r\nConnection: keep-alive\r\nAccept-Ranges: bytes\r\n\r\n", timebuf, mimetype(recs->path), recs->length, lastime);
+	
+//	printf("header = %s\r\nrecs->length = %u\r\n", header, recs->length);
+	vectors[0].iov_base = header;
+	vectors[0].iov_len  = header_len;
+	vectors[1].iov_base = recs->content;
+	vectors[1].iov_len  = recs->length;
+
+	writev(conn->fd, vectors, 2);
+
+}
+
 void http_request_write(int fd)
 {
+	int rc;
 	ssize_t bytes;
+	char filename[200];
+	struct conn_t *conn;
+	const struct record *recs;
 	
 	bytes = 0;
-	bytes = send(fd, BUFFER, strlen(BUFFER), 0);
+	conn  = &server.conn[fd];
+
+	memset(&filename, 0, sizeof(filename));
+	snprintf(filename, sizeof(filename), "%s%s", server.root, conn->req.filepath);
+	
+	recs  = hashmap_get(memdisk, filename);
+	if(recs)
+	{
+		http_reply_header(recs, conn);
+		return ;
+	}
+	rc = file_load_memory(filename);
+	if(rc)
+	{
+		recs = hashmap_get(memdisk, filename);
+		if(recs)
+		{
+			http_reply_header(recs, conn);
+			return ;
+		}
+	}
+
+	bytes = send(conn->fd, BUFFER, strlen(BUFFER), 0);
 	if(bytes <= 0)
 	{
 		sock_close(fd);
@@ -307,13 +387,20 @@ void http_request_read(int fd)
 	request_parse(buffer, bytes, conn->fd);
 
 	
-	printf("uri = %s\r\n", conn->req.uri);
-	printf("query = %s\r\n", conn->req.query_ptr);
-	printf("filepath = %s\r\n", conn->req.filepath);
+//	printf("uri = %s\r\n", conn->req.uri);
+//	printf("query = %s\r\n", conn->req.query_ptr);
+//	printf("filepath = %s\r\n", conn->req.filepath);
 	
 	sock_epoll_mod(fd, EPOLLOUT | EPOLLPRI | EPOLLERR | EPOLLHUP);
 }
 
+
+static void server_down(int signum)
+{
+	sock_epoll_free();
+	hashmap_destroy(memdisk);
+	exit(1);
+}
 
 int main(int argc, char *argv[])
 {
@@ -322,6 +409,16 @@ int main(int argc, char *argv[])
 //	printf("ext = %s\r\n", mimetype("/www/core/thread-1271438-1-1.html"));
 
 	sock_init();
+
+	memdisk = hashmap_new(100);
+
+	signal(SIGTERM, server_down);
+	signal(SIGINT,  server_down);
+	signal(SIGQUIT, server_down);
+	signal(SIGSEGV, server_down);
+	signal(SIGALRM, server_down);
+	signal(SIGPIPE, server_down);
+
 	sock_epoll_wait(-1);
 	return 0;
 }
