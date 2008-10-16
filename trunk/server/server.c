@@ -140,6 +140,7 @@ int request_parse(char *req_ptr, size_t req_len, int fd)
 	memset(&conn->req.uri,       0, sizeof(conn->req.uri));
 	memset(&conn->req.filepath,  0, sizeof(conn->req.filepath));
 	memset(&conn->req.query_ptr, 0, sizeof(conn->req.query_ptr));
+	memset(&conn->req.if_modified_since, 0, sizeof(conn->req.if_modified_since));
 
 	for (line_end = ptr;ptr < req_end;ptr++) 
 	{
@@ -172,15 +173,15 @@ int request_parse(char *req_ptr, size_t req_len, int fd)
 				ptr += 2;
 				switch (*line_start) 
 				{
-				/*	case 'H':
-						if ((line_start + 3) < req_end && !strncmp(line_start+1, "ost", 3)) 
+					case 'I':
+						if ((line_start + 3) < req_end && !strncmp(line_start+1, "f-Modified-Since", 16)) 
 						{
 							len = line_end - ptr;
-							conn->req.host = malloc(len + 1);
-							memcpy(conn->req.host, ptr, len);
-							conn->req.host[len] = '\0';
+							//conn->req.host = malloc(len + 1);
+							pos = (len+1) <= sizeof(conn->req.if_modified_since) ? (len+1) : sizeof(conn->req.if_modified_since); 
+							memcpy(conn->req.if_modified_since, ptr, pos);
 						}
-						break;*/
+						break;
 					case 'C':
 						if ((line_start + 9) < req_end && !strncmp(line_start+1, "onnection", 9)) 
 						{
@@ -239,6 +240,7 @@ int request_parse(char *req_ptr, size_t req_len, int fd)
 	return 1;
 }
 
+
 int file_load_memory(char *filename)
 {
 	int fd;
@@ -265,6 +267,42 @@ int file_load_memory(char *filename)
 	return 1;
 }
 
+void http_request_error(struct conn_t *conn, char *cmd)
+{
+	ssize_t bytes;
+	char body[400];
+	char header[400];
+	char timebuf[100];
+	struct iovec vectors[2];
+	int  header_len, body_len;
+
+	bytes = 0;
+	memset(&body, 0, sizeof(body));
+	memset(&header, 0, sizeof(header));
+	memset(&timebuf, 0, sizeof(timebuf));
+	
+	strftime(timebuf, sizeof(timebuf), RFC_TIME, localtime(&conn->now));
+
+	if(strcmp(cmd, "404 Not Found") == 0)
+	{
+		body_len   = snprintf(body, sizeof(body), "<html>\r\n<head>\r\n<title>404 Not Found</title>\r\n</head>\r\n<body>\r\n<h1>Not Found</h1><p>The requested URL %s was not found on this server.</p><hr><address>Memhttpd/Beta1.0</address>\r\n</body>\r\n</html>", conn->req.filepath);
+		header_len = snprintf(header, sizeof(header), RFC_404, cmd, timebuf, body_len);
+
+		vectors[0].iov_base = header;
+		vectors[0].iov_len  = header_len;
+		vectors[1].iov_base = body;
+		vectors[1].iov_len  = body_len;
+
+		bytes = writev(conn->fd, vectors, 2);
+	}
+	else
+	{
+		header_len = snprintf(header, sizeof(header), RFC_304, cmd, timebuf);
+		bytes = send(conn->fd, header, header_len, 0);
+	}
+	sock_close(conn->fd);
+}
+
 void http_request_accept(int fd)
 {
 	struct sockaddr_in addr;
@@ -283,6 +321,7 @@ void http_request_accept(int fd)
 	sock_epoll_add(client_fd, EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP);
 }
 
+
 void http_reply_header(const struct record *recs, struct conn_t *conn)
 {
 	ssize_t bytes;
@@ -297,19 +336,24 @@ void http_reply_header(const struct record *recs, struct conn_t *conn)
 	memset(&timebuf, 0, sizeof(timebuf));
 	memset(&lastime, 0, sizeof(lastime));
 	
-	strftime(timebuf, sizeof(timebuf), RFC1123, localtime(&conn->now));
-	strftime(lastime, sizeof(lastime), RFC1123, localtime(&recs->file_time));
-
-	header_len = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nServer: qiye/RC1.2\r\nDate: %s\r\nContent-Type: %s\r\nContent-Length: %u\r\nLast-Modified: %s\r\nConnection: keep-alive\r\nAccept-Ranges: bytes\r\n\r\n", timebuf, mimetype(recs->path), recs->length, lastime);
+	strftime(timebuf, sizeof(timebuf), RFC_TIME, localtime(&conn->now));
+	strftime(lastime, sizeof(lastime), RFC_TIME, localtime(&recs->file_time));
 	
-//	printf("header = %s\r\nrecs->length = %u\r\n", header, recs->length);
+	if(strcmp(lastime, conn->req.if_modified_since) == 0)
+	{
+		http_request_error(conn, "304 Not Modified");
+		return ;
+	}
+
+	header_len = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nServer: Memhttpd/Beta1.0\r\nDate: %s\r\nContent-Type: %s\r\nContent-Length: %u\r\nLast-Modified: %s\r\nConnection: keep-alive\r\nAccept-Ranges: bytes\r\n\r\n", timebuf, mimetype(recs->path), recs->length, lastime);
+	
 	vectors[0].iov_base = header;
 	vectors[0].iov_len  = header_len;
 	vectors[1].iov_base = recs->content;
 	vectors[1].iov_len  = recs->length;
 
 	bytes = writev(conn->fd, vectors, 2);
-	if(bytes <= 0) sock_close(fd);
+	sock_close(conn->fd);
 }
 
 void http_request_write(int fd)
@@ -340,8 +384,7 @@ void http_request_write(int fd)
 		return ;
 	}
 
-	bytes = send(conn->fd, BUFFER, strlen(BUFFER), 0);
-	if(bytes <= 0) sock_close(fd);
+	http_request_error(conn, "404 Not Found");
 }
 
 void http_request_read(int fd)
@@ -376,8 +419,6 @@ void http_request_read(int fd)
 		sock_close(conn->fd);
 		return ;
 	}
-
-//	printf("%s", buffer);
 	
 	request_parse(buffer, bytes, conn->fd);
 
@@ -385,6 +426,7 @@ void http_request_read(int fd)
 //	printf("uri = %s\r\n", conn->req.uri);
 //	printf("query = %s\r\n", conn->req.query_ptr);
 //	printf("filepath = %s\r\n", conn->req.filepath);
+//	printf("if_modified_since = %s\r\n", conn->req.if_modified_since);
 	
 	sock_epoll_mod(fd, EPOLLOUT | EPOLLPRI | EPOLLERR | EPOLLHUP);
 }
@@ -399,10 +441,8 @@ static void server_down(int signum)
 
 int main(int argc, char *argv[])
 {
-//	daemon(1, 1);
+	daemon(1, 1);
 	
-//	printf("ext = %s\r\n", mimetype("/www/core/thread-1271438-1-1.html"));
-
 	sock_init();
 
 	memdisk = hashmap_new(100);
@@ -428,6 +468,14 @@ Content-Length: 7750
 Last-Modified: Mon, 15 Sep 2008 08:42:04 GMT
 Connection: keep-alive
 Accept-Ranges: bytes
+
+
+HTTP/1.1 404 Not Found
+Server: qiye/RC1.2
+Date: Thu, 16 Oct 2008 02:26:34 GMT
+Content-Type: text/html
+Content-Length: 527
+Connection: keep-alive
 
 */
 

@@ -9,7 +9,9 @@
 #define  MAX_FD        4096
 #define  SOCK_TIMEOUT  30
 #define  safe_free(x)  if(x){free(x);x=NULL;}
-#define  RFC1123       "%a, %d %b %Y %H:%M:%S GMT"
+#define  RFC_TIME      "%a, %d %b %Y %H:%M:%S GMT"
+#define  RFC_304       "HTTP/1.1 %s\r\nServer: Memhttpd/Beta1.0\r\nDate: %s\r\nContent-Type: text/html\r\nConnection: keep-alive\r\n\r\n"
+#define  RFC_404       "HTTP/1.1 %s\r\nServer: Memhttpd/Beta1.0\r\nDate: %s\r\nContent-Type: text/html\r\nContent-Length: %u\r\nConnection: keep-alive\r\n\r\n"
 
 typedef enum 
 {
@@ -35,6 +37,7 @@ struct request
 	char uri[50];
 	char filepath[300];
 	char query_ptr[256];
+	char if_modified_since[50];
 	
 	unsigned int   status_code;
 	http_version_t http_version;

@@ -27,6 +27,7 @@ int sock_epoll_init()
 void sock_epoll_free()
 {
 	close(ct.efd);
+	close(server.listen_fd);
 	safe_free(ct.events);
 }
 
