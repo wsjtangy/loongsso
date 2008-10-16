@@ -177,7 +177,6 @@ int request_parse(char *req_ptr, size_t req_len, int fd)
 						if ((line_start + 3) < req_end && !strncmp(line_start+1, "f-Modified-Since", 16)) 
 						{
 							len = line_end - ptr;
-							//conn->req.host = malloc(len + 1);
 							pos = (len+1) <= sizeof(conn->req.if_modified_since) ? (len+1) : sizeof(conn->req.if_modified_since); 
 							memcpy(conn->req.if_modified_since, ptr, pos);
 						}
