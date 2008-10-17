@@ -6,7 +6,7 @@
 #include "hashmap.h"
 #include "sock_epoll.h"
 
-#define  MAX_FD        4096
+#define  MAX_FD        15000
 #define  SOCK_TIMEOUT  30
 #define  safe_free(x)  if(x){free(x);x=NULL;}
 #define  RFC_TIME      "%a, %d %b %Y %H:%M:%S GMT"

@@ -16,6 +16,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/resource.h>
 #include "server.h"
 #include "sock_io.h"
 
@@ -323,6 +324,8 @@ void http_request_accept(int fd)
 
 void http_reply_header(const struct record *recs, struct conn_t *conn)
 {
+	ssize_t out;
+	ssize_t total;
 	ssize_t bytes;
 	int  header_len;
 	char header[400];
@@ -352,6 +355,26 @@ void http_reply_header(const struct record *recs, struct conn_t *conn)
 	vectors[1].iov_len  = recs->length;
 
 	bytes = writev(conn->fd, vectors, 2);
+	if(bytes <= (header_len + recs->length))
+	{
+		//循环发送 未发送出去的数据
+		out   = bytes - header_len;
+		total = recs->length - (bytes - header_len);
+
+
+		 do {
+                bytes = send(conn->fd, recs->content + out, total, MSG_NOSIGNAL);
+                if(bytes != -1) 
+				{
+				   out   += bytes;
+				   total -= bytes; 
+                }
+				if(bytes == -1 && errno == EPIPE) break;
+        } while(total > 0 || (bytes == -1 && (errno == EINTR || errno == EAGAIN)));
+              
+	}
+
+	
 	sock_close(conn->fd);
 }
 
@@ -441,17 +464,27 @@ static void server_down(int signum)
 int main(int argc, char *argv[])
 {
 	daemon(1, 1);
-	
-	sock_init();
+	struct rlimit rt;
+	struct sigaction sa;
 
+	sock_init();
+	rt.rlim_max = rt.rlim_cur = MAX_FD;
+	if (setrlimit(RLIMIT_NOFILE, &rt) == -1) 
+	{
+		perror("setrlimit");
+		exit(0);
+	}
 	memdisk = hashmap_new(100);
+
+    sa.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &sa, 0);
 
 	signal(SIGTERM, server_down);
 	signal(SIGINT,  server_down);
 	signal(SIGQUIT, server_down);
 	signal(SIGSEGV, server_down);
 	signal(SIGALRM, server_down);
-	signal(SIGPIPE, server_down);
+	signal(SIGPIPE, server_down); 
 
 	sock_epoll_wait(-1);
 	return 0;
