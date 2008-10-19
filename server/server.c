@@ -21,9 +21,6 @@
 #include "sock_io.h"
 
 
-#define BUFFER "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\nContent-Type: text/html\r\n\r\nHello"
-
-
 const char *mimetype(const char *filename)
 {
 	static const char *(assocNames[][2]) =
@@ -361,17 +358,32 @@ void http_reply_header(const struct record *recs, struct conn_t *conn)
 		out   = bytes - header_len;
 		total = recs->length - (bytes - header_len);
 
-
-		 do {
-                bytes = send(conn->fd, recs->content + out, total, MSG_NOSIGNAL);
-                if(bytes != -1) 
+		do {
+				vectors[0].iov_base = recs->content + out;
+				vectors[0].iov_len  = total;
+				
+				bytes = writev(conn->fd, vectors, 1);
+                if(bytes < 0) 
 				{
-				   out   += bytes;
-				   total -= bytes; 
+					switch (errno) 
+					{
+						case EAGAIN:
+						case EINTR:
+							bytes = 0;
+							break;
+						case EPIPE:
+						case ECONNRESET:
+							sock_close(conn->fd);
+							return ;
+						default:
+							printf("%s %d\r\n", strerror(errno), conn->fd);
+							sock_close(conn->fd);
+							return ;
+					}
                 }
-				if(bytes == -1 && errno == EPIPE) break;
-        } while(total > 0 || (bytes == -1 && (errno == EINTR || errno == EAGAIN)));
-              
+				out   += bytes;
+				total -= bytes; 
+        } while(total > 0);
 	}
 
 	
@@ -458,7 +470,7 @@ static void server_down(int signum)
 {
 	sock_epoll_free();
 	hashmap_destroy(memdisk);
-	exit(1);
+	exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char *argv[])
@@ -467,24 +479,32 @@ int main(int argc, char *argv[])
 	struct rlimit rt;
 	struct sigaction sa;
 
-	sock_init();
-	rt.rlim_max = rt.rlim_cur = MAX_FD;
-	if (setrlimit(RLIMIT_NOFILE, &rt) == -1) 
-	{
-		perror("setrlimit");
-		exit(0);
+	sa.sa_handler = SIG_IGN;//设定接受到指定信号后的动作为忽略
+	sa.sa_flags   = 0;
+	
+	////初始化信号集为空 屏蔽SIGPIPE信号
+	if (sigemptyset(&sa.sa_mask) == -1 || sigaction(SIGPIPE, &sa, 0) == -1) 
+	{ 
+		perror("failed to ignore SIGPIPE; sigaction");
+		exit(EXIT_FAILURE);
 	}
-	memdisk = hashmap_new(100);
-
-    sa.sa_handler = SIG_IGN;
-    sigaction(SIGPIPE, &sa, 0);
 
 	signal(SIGTERM, server_down);
 	signal(SIGINT,  server_down);
 	signal(SIGQUIT, server_down);
 	signal(SIGSEGV, server_down);
 	signal(SIGALRM, server_down);
-	signal(SIGPIPE, server_down); 
+
+	rt.rlim_max = rt.rlim_cur = MAX_FD;
+	if (setrlimit(RLIMIT_NOFILE, &rt) == -1) 
+	{
+		perror("setrlimit");
+		exit(EXIT_FAILURE);
+	}
+
+	sock_init();
+
+	memdisk = hashmap_new(100);
 
 	sock_epoll_wait(-1);
 	return 0;

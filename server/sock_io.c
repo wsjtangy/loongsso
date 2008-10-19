@@ -59,10 +59,10 @@ int sock_set_noblocking(int fd)
 
 void sock_init() 
 {
-	server.port      = 8888;
+	server.port      = 7878;
 	server.maxfd     = 0;
 	server.listen_fd = -1;
-	server.root      = "/home/lijinxing/server/www";
+	server.root      = "/home/new_you54_user/server/www/";
 	server.conn      = calloc(MAX_FD, sizeof(struct conn_t));
 	
 	sock_epoll_init();
@@ -116,8 +116,8 @@ static void sock_set_linger(int fd)
 {
 	struct linger ling;	
 	
-	ling.l_onoff = 1;
-	ling.l_linger = 0;
+	ling.l_onoff  = 1;
+	ling.l_linger = 30;
 	if(-1 == setsockopt(fd, SOL_SOCKET, SO_LINGER, &ling, sizeof(ling))) 
 	{
 		//log_debug(__FILE__, __LINE__, "warning! sock_set_cork(%s)\n", strerror(errno));
