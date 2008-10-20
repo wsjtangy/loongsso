@@ -314,6 +314,7 @@ void http_request_accept(int fd)
 	}
 	
 	fd_open(client_fd);
+	sock_set_linger(client_fd);
 
 	sock_epoll_add(client_fd, EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP);
 }
@@ -407,6 +408,7 @@ void http_request_write(int fd)
 	recs  = hashmap_get(memdisk, filename);
 	if(recs)
 	{
+	//	printf("%s 内存数据发送\r\n", conn->req.filepath);
 		http_reply_header(recs, conn);
 		return ;
 	}
@@ -482,7 +484,7 @@ int main(int argc, char *argv[])
 	sa.sa_handler = SIG_IGN;//设定接受到指定信号后的动作为忽略
 	sa.sa_flags   = 0;
 	
-	////初始化信号集为空 屏蔽SIGPIPE信号
+	//初始化信号集为空 屏蔽SIGPIPE信号
 	if (sigemptyset(&sa.sa_mask) == -1 || sigaction(SIGPIPE, &sa, 0) == -1) 
 	{ 
 		perror("failed to ignore SIGPIPE; sigaction");
