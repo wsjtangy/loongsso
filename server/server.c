@@ -20,6 +20,20 @@
 #include "server.h"
 #include "sock_io.h"
 
+#define SPLICE_SIZE	(64*1024)
+
+#define min(x,y) ({ \
+        typeof(x) _x = (x);     \
+        typeof(y) _y = (y);     \
+        (void) (&_x == &_y);            \
+        _x < _y ? _x : _y; })
+
+#define max(x,y) ({ \
+        typeof(x) _x = (x);     \
+        typeof(y) _y = (y);     \
+        (void) (&_x == &_y);            \
+        _x > _y ? _x : _y; })
+
 
 const char *mimetype(const char *filename)
 {
@@ -235,6 +249,55 @@ int request_parse(char *req_ptr, size_t req_len, int fd)
 	}
 	
 	return 1;
+}
+
+static int client_splice_loop(int out_fd, int fd, int *pfd)
+{
+	loff_t off;
+	struct stat sb;
+	unsigned long long size;
+	
+
+	if (fstat(fd, &sb) < 0)
+		return error("fstat");
+
+
+	size = sb.st_size;
+	off = 0;
+
+	do {
+		int ret = splice(fd, &off, pfd[1], NULL, min(size, (unsigned long long) SPLICE_SIZE), 0);
+
+		if (ret <= 0)
+			return error("splice-in");
+
+		size -= ret;
+		while (ret > 0) {
+			int flags = size ? SPLICE_F_MORE : 0;
+			int written = splice(pfd[0], NULL, out_fd, NULL, ret, flags);
+
+			if (written <= 0)
+				return error("splice-out");
+
+			ret -= written;
+		}
+	} while (size);
+
+
+	return 0;
+}
+
+static int client_splice(int out_fd, int file_fd)
+{
+	int pfd[2], ret;
+
+	if (pipe(pfd) < 0)
+		return error("pipe");
+	
+	ret = client_splice_loop(out_fd, file_fd, pfd);
+	close(pfd[0]);
+	close(pfd[1]);
+	return ret;
 }
 
 
