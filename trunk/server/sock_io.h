@@ -15,7 +15,7 @@ int sock_set_noblocking(int fd);
 
 static void sock_set_cork(int fd);
 
-static void sock_set_linger(int fd);
+void sock_set_linger(int fd);
 
 static void sock_set_reuseaddr(int fd);
 
