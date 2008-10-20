@@ -52,7 +52,7 @@ static int client_splice_loop(int out_fd, int fd, int *pfd)
 	off = 0;
 
 	do {
-		int ret = splice(fd, &off, pfd[1], NULL, min(size, (unsigned long long) SPLICE_SIZE), 0);
+		int ret = splice(fd, &off, pfd[1], NULL, min(size, (unsigned long long) SPLICE_SIZE), 0);//SPLICE_F_NONBLOCK
 
 		if (ret <= 0)
 			return error("splice-in");
