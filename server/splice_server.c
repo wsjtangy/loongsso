@@ -264,6 +264,7 @@ static int client_splice_loop(int out_fd, int fd, int *pfd)
 	struct conn_t *conn;
 	unsigned int length;
 	uint64_t size;
+	int len, slen;
 	
 	conn  = &server.conn[out_fd];
 	memset(&header, 0, sizeof(header));
@@ -293,18 +294,21 @@ static int client_splice_loop(int out_fd, int fd, int *pfd)
 	header_len = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nServer: Memhttpd/Beta1.0\r\nDate: %s\r\nContent-Type: %s\r\nContent-Length: %llu\r\nLast-Modified: %s\r\nConnection: keep-alive\r\nAccept-Ranges: bytes\r\n\r\n", timebuf, mimetype(conn->req.filepath), size, lastime);
 	
 	write(conn->fd, header, header_len);
+
+	
 	do {
-		int ret = splice(fd, &off, pfd[1], NULL, min(size, (uint64_t) SPLICE_SIZE), SPLICE_F_NONBLOCK | SPLICE_F_MORE | SPLICE_F_MOVE);
+		int ret = splice(fd, &off, pfd[1], NULL, 1400, SPLICE_F_NONBLOCK | SPLICE_F_MORE | SPLICE_F_MOVE);
 
 		if (ret < 0)
 		{
 			if(errno == EAGAIN)
 			{
-				//fprintf(stderr, "EAGAIN: IN=%d, OUT=%d\n", fd, pfd[1]);
+				fprintf(stderr, "EAGAIN: IN=%d, OUT=%d\n", fd, pfd[1]);
+				usleep(1000);
 				continue;
 			}
 
-			//printf("splice-in %s\n", strerror(errno));
+			printf("splice-in %s\n", strerror(errno));
 			return errno;
 		}
 		size -= ret;
@@ -316,12 +320,13 @@ static int client_splice_loop(int out_fd, int fd, int *pfd)
 			{
 				if(errno == EAGAIN)
 				{
-					//fprintf(stderr, "EAGAIN: IN=%d, OUT=%d\n", pfd[0], out_fd);
+					fprintf(stderr, "EAGAIN: OUT=%d, OUT=%d\n", pfd[0], out_fd);
+					usleep(1000);
 					continue;
 				}
 
 
-				//printf("splice-out %s\n", strerror(errno));
+				printf("splice-out %s\n", strerror(errno));
 				return errno;
 			}
 
@@ -329,7 +334,7 @@ static int client_splice_loop(int out_fd, int fd, int *pfd)
 		}
 	} while (size);
 
-
+	
 	return 0;
 }
 
@@ -489,7 +494,7 @@ static void server_down(int signum)
 
 int main(int argc, char *argv[])
 {
-	daemon(1, 1);
+//	daemon(1, 1);
 	struct rlimit rt;
 	struct sigaction sa;
 
