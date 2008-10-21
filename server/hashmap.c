@@ -5,19 +5,6 @@
 #include <string.h>
 #include "server.h"
 
-struct record 
-{
-    char    path[200];   //文件路径
-	uint64_t length;     //文件内容的大小
-	unsigned int hash;
-};
-
-struct hashmap 
-{
-    struct record *records;
-    unsigned int records_count;
-    unsigned int size_index;
-};
 
 static const unsigned int sizes[] = {
     53, 97, 193, 389, 769, 1543, 3079, 6151, 12289, 24593, 49157, 98317,
@@ -52,7 +39,7 @@ static int hashmap_grow(hashmap *h)
 	{
         if (old_recs[i].hash)
 		{
-            hashmap_add(h, old_recs[i].path, old_recs[i].length);
+            hashmap_add(h, old_recs[i].path, old_recs[i].content, old_recs[i].length, old_recs[i].file_time);
 		}
 	}
     free(old_recs);
@@ -88,6 +75,7 @@ hashmap *hashmap_new(unsigned int capacity)
         return NULL;
     }
 
+	h->length        = 0;
     h->records_count = 0;
     h->size_index    = sind;
 
@@ -96,11 +84,23 @@ hashmap *hashmap_new(unsigned int capacity)
 
 void hashmap_destroy(hashmap *h)
 {
+	int i;
+	struct record *recs;
+	unsigned int  recs_length;
+	
+	recs        = h->records;
+    recs_length = sizes[h->size_index];
+    
+    for (i=0; i < recs_length; i++)
+	{
+        if (recs[i].hash) safe_free(recs[i].content);
+	}
+
     safe_free(h->records);
     safe_free(h);
 }
 
-int hashmap_add(hashmap *h, char *path, unsigned int length)
+int hashmap_add(hashmap *h, char *path, void *content, unsigned int length, time_t file_time)
 {
 	int rc;
     struct record *recs;
@@ -127,17 +127,22 @@ int hashmap_add(hashmap *h, char *path, unsigned int length)
 	}
 	
 	recs[ind].hash       = code;
+	recs[ind].visit      = 1;
+	recs[ind].content    = content;
 	recs[ind].length     = length;
+	recs[ind].visit_time = time((time_t*)0);
+	recs[ind].file_time  = file_time;
 	
 	memset(&recs[ind].path, 0, sizeof(recs[ind].path));
 	memcpy(recs[ind].path, path, sizeof(recs[ind].path));
-
+    
+	h->length += length;
 	h->records_count++;
 
     return 1;
 }
 
-uint64_t hashmap_get(hashmap *h, const char *path)
+const struct record *hashmap_get(hashmap *h, const char *path)
 {
     struct record *recs;
     unsigned int off, ind, size;
@@ -154,12 +159,15 @@ uint64_t hashmap_get(hashmap *h, const char *path)
 	{
         if ((code == recs[ind].hash) && strcmp(path, recs[ind].path) == 0)
         {
-			return recs[ind].length;
+			recs[ind].visit++;
+			recs[ind].visit_time = time((time_t*)0);
+
+			return &recs[ind];
         }
 		ind = (code + (int)pow(++off,2)) % size;
     }
 
-    return 0;
+    return NULL;
 }
 
 
@@ -180,8 +188,12 @@ int hashmap_remove(hashmap *h, const char *path)
 		{
             // do not erase hash, so probes for collisions succeed
             recs[ind].hash   = 0;
+            recs[ind].visit  = 0;
+
+			h->length       -= recs[ind].length;
 			recs[ind].length = 0;
 			
+			safe_free(recs[ind].content);
             h->records_count--;
             return 1;
         }
@@ -196,6 +208,11 @@ unsigned int hashmap_size(hashmap *h)
     return h->records_count;
 }
 
+uint64_t hashmap_length(hashmap *h)
+{
+    return h->length;
+}
+
 /*
 
 #include <stdio.h>
@@ -207,26 +224,37 @@ unsigned int hashmap_size(hashmap *h)
 #include <sys/types.h>
 #include "hashmap.h"
 
-
 int main()
 {
-	hashmap *memdisk;
+	int fd;
+	struct stat sbuf;
+	hashmap *memdish;
 	unsigned char *buf;
-	unsigned int length;
+	const struct record *recs;
 	
-	memdisk = hashmap_new(100);
+	memdish = hashmap_new(100);
+	fd      = open("./sock_epoll.c", O_RDONLY);
+	if(fd == -1) return 0;
 	
-	hashmap_add(memdisk, "./sock_epoll.c", 123);
+	fstat(fd, &sbuf);
+	
+	buf = calloc(sbuf.st_size + 1, sizeof(unsigned char));
 
-	hashmap_remove(memdisk, "./sock_epoll.c");
-	length = hashmap_get(memdisk, "./sock_epoll.c");
-	if(length)
-	{
-		printf("size = %u\r\n", length);
-	}
+	read(fd, buf, sbuf.st_size);
+	close(fd);
+
+	//printf("%s\r\nsize = %u\r\n", buf, sbuf.st_size);
 	
-	hashmap_destroy(memdisk);
+	hashmap_add(memdish, "./sock_epoll.c", buf, sbuf.st_size, sbuf.st_mtime);
+
+	hashmap_remove(memdish, "./sock_epoll.c");
+	recs = hashmap_get(memdish, "./sock_epoll.c");
+	if(recs)
+	{
+		printf("%s\r\nsize = %u\r\n", recs->content, recs->length);
+	}
+
 	return 1;
 }
-
 */
+
