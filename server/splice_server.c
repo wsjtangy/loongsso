@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
@@ -261,28 +262,39 @@ static int client_splice_loop(int out_fd, int fd, int *pfd)
 	char timebuf[100];
 	char lastime[100];
 	struct conn_t *conn;
-	unsigned long long size;
+	unsigned int length;
+	uint64_t size;
 	
+	conn  = &server.conn[out_fd];
 	memset(&header, 0, sizeof(header));
 	memset(&timebuf, 0, sizeof(timebuf));
 	memset(&lastime, 0, sizeof(lastime));
-	conn  = &server.conn[out_fd];
-	if (fstat(fd, &sb) < 0)
+	
+	off    = 0;
+	length = hashmap_get(memdisk, conn->req.filepath);
+	if(length)
 	{
-		printf("fstat %s\n", strerror(errno));
-		return errno;
+		size = length;
+	}
+	else
+	{
+		if (fstat(fd, &sb) < 0)
+		{
+			printf("fstat %s\n", strerror(errno));
+			return errno;
+		}
+		size = sb.st_size;
+		hashmap_add(memdisk, conn->req.filepath, sb.st_size);
 	}
 	
-	off  = 0;
-	size = sb.st_size;
 	strftime(timebuf, sizeof(timebuf), RFC_TIME, localtime(&conn->now));
 	strftime(lastime, sizeof(lastime), RFC_TIME, localtime(&sb.st_mtime));
 	
-	header_len = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nServer: Memhttpd/Beta1.0\r\nDate: %s\r\nContent-Type: %s\r\nContent-Length: %u\r\nLast-Modified: %s\r\nConnection: keep-alive\r\nAccept-Ranges: bytes\r\n\r\n", timebuf, mimetype(conn->req.filepath), sb.st_size, lastime);
+	header_len = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nServer: Memhttpd/Beta1.0\r\nDate: %s\r\nContent-Type: %s\r\nContent-Length: %llu\r\nLast-Modified: %s\r\nConnection: keep-alive\r\nAccept-Ranges: bytes\r\n\r\n", timebuf, mimetype(conn->req.filepath), size, lastime);
 	
 	write(conn->fd, header, header_len);
 	do {
-		int ret = splice(fd, &off, pfd[1], NULL, min(size, (unsigned long long) SPLICE_SIZE), SPLICE_F_NONBLOCK | SPLICE_F_MORE | SPLICE_F_MOVE);
+		int ret = splice(fd, &off, pfd[1], NULL, min(size, (uint64_t) SPLICE_SIZE), SPLICE_F_NONBLOCK | SPLICE_F_MORE | SPLICE_F_MOVE);
 
 		if (ret < 0)
 		{
@@ -471,6 +483,7 @@ void http_request_read(int fd)
 static void server_down(int signum)
 {
 	sock_epoll_free();
+	hashmap_destroy(memdisk);
 	exit(EXIT_SUCCESS);
 }
 
@@ -504,7 +517,7 @@ int main(int argc, char *argv[])
 	}
 
 	sock_init();
-
+	memdisk = hashmap_new(100);
 	sock_epoll_wait(-1);
 	return 0;
 }
