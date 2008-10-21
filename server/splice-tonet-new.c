@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
 	if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
 		return error("connect");
 	
-	fp = open("splice-in.c", O_RDONLY);
+	fp = open("sock_epoll.c", O_RDONLY);
 
 	client_splice(fd, fp);
 	/*
