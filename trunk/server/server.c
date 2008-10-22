@@ -320,10 +320,8 @@ void http_request_accept(int fd)
 }
 
 
-void http_reply_header(const struct record *recs, struct conn_t *conn)
+void http_reply_header(struct conn_t *conn, time_t file_time)
 {
-	ssize_t out;
-	ssize_t total;
 	ssize_t bytes;
 	int  header_len;
 	char header[400];
@@ -337,7 +335,7 @@ void http_reply_header(const struct record *recs, struct conn_t *conn)
 	memset(&lastime, 0, sizeof(lastime));
 	
 	strftime(timebuf, sizeof(timebuf), RFC_TIME, localtime(&conn->now));
-	strftime(lastime, sizeof(lastime), RFC_TIME, localtime(&recs->file_time));
+	strftime(lastime, sizeof(lastime), RFC_TIME, localtime(&file_time));
 	
 	if(strcmp(lastime, conn->req.if_modified_since) == 0)
 	{
@@ -345,78 +343,95 @@ void http_reply_header(const struct record *recs, struct conn_t *conn)
 		return ;
 	}
 
-	header_len = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nServer: Memhttpd/Beta1.0\r\nDate: %s\r\nContent-Type: %s\r\nContent-Length: %u\r\nLast-Modified: %s\r\nConnection: keep-alive\r\nAccept-Ranges: bytes\r\n\r\n", timebuf, mimetype(recs->path), recs->length, lastime);
+	header_len = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nServer: Memhttpd/Beta1.0\r\nDate: %s\r\nContent-Type: %s\r\nContent-Length: %u\r\nLast-Modified: %s\r\nConnection: keep-alive\r\nAccept-Ranges: bytes\r\n\r\n", timebuf, mimetype(conn->req.uri), conn->req.length, lastime);
 	
 	vectors[0].iov_base = header;
 	vectors[0].iov_len  = header_len;
-	vectors[1].iov_base = recs->content;
-	vectors[1].iov_len  = recs->length;
+	vectors[1].iov_base = conn->req.buf;
+	vectors[1].iov_len  = conn->req.length;
 
 	bytes = writev(conn->fd, vectors, 2);
-	if(bytes <= (header_len + recs->length))
+	if(bytes < (header_len + conn->req.length))
 	{
-		//循环发送 未发送出去的数据
-		out   = bytes - header_len;
-		total = recs->length - (bytes - header_len);
-
-		do {
-				vectors[0].iov_base = recs->content + out;
-				vectors[0].iov_len  = total;
-				
-				bytes = writev(conn->fd, vectors, 1);
-                if(bytes < 0) 
-				{
-					switch (errno) 
-					{
-						case EAGAIN:
-						case EINTR:
-							bytes = 0;
-							break;
-						case EPIPE:
-						case ECONNRESET:
-							sock_close(conn->fd);
-							return ;
-						default:
-							printf("%s %d\r\n", strerror(errno), conn->fd);
-							sock_close(conn->fd);
-							return ;
-					}
-                }
-				out   += bytes;
-				total -= bytes; 
-        } while(total > 0);
+		conn->req.size = bytes - header_len;
+		sock_epoll_mod(conn->fd, EPOLLOUT | EPOLLPRI | EPOLLERR | EPOLLHUP);
+		return ;
 	}
 
 	
 	sock_close(conn->fd);
 }
 
+void http_reply_body(struct conn_t *conn)
+{
+	ssize_t bytes;
+
+	bytes = 0;
+	
+	bytes = write(conn->fd, conn->req.buf + conn->req.size, (conn->req.length - conn->req.size));
+	if(bytes < 0)
+	{
+		switch (errno) 
+		{
+			case EAGAIN:
+			case EINTR:
+				bytes = 0;
+				sock_close(conn->fd);
+				return ;
+			case EPIPE:
+			case ECONNRESET:
+				sock_close(conn->fd);
+				return ;
+			default:
+				sock_close(conn->fd);
+				return ;
+		}
+	}
+	else if(conn->req.length > (bytes + conn->req.size))
+	{
+		conn->req.size += bytes;
+		sock_epoll_mod(conn->fd, EPOLLOUT | EPOLLPRI | EPOLLERR | EPOLLHUP);
+		return ;
+	}
+
+	sock_close(conn->fd);
+}
+
 void http_request_write(int fd)
 {
 	int rc;
-	ssize_t bytes;
 	char filename[200];
 	struct conn_t *conn;
 	const struct record *recs;
 	
-	bytes = 0;
 	conn  = &server.conn[fd];
+	
+	if(conn->req.buf && (conn->req.size > 0) && (conn->req.length > 0))
+	{
+		http_reply_body(conn);
+		return ;
+	}
 
 	memset(&filename, 0, sizeof(filename));
 	snprintf(filename, sizeof(filename), "%s%s", server.root, conn->req.filepath);
 	
 	recs  = hashmap_get(memdisk, filename);
 	if(recs)
-	{
-	//	printf("%s 内存数据发送\r\n", conn->req.filepath);
-		http_reply_header(recs, conn);
+	{		
+		conn->req.size   = 0;
+		conn->req.buf    = recs->content;
+		conn->req.length = recs->length;
+		http_reply_header(conn, recs->file_time);
 		return ;
 	}
 	rc   = file_load_memory(filename);
 	recs = hashmap_get(memdisk, filename);
 	if(rc && recs)
 	{
-		http_reply_header(recs, conn);
+		conn->req.size   = 0;
+		conn->req.buf    = recs->content;
+		conn->req.length = recs->length;
+		http_reply_header(conn, recs->file_time);
 		return ;
 	}
 
@@ -511,25 +526,4 @@ int main(int argc, char *argv[])
 	sock_epoll_wait(-1);
 	return 0;
 }
-
-/*
-
-HTTP/1.1 200 OK
-Server: qiye/RC1.2
-Date: Wed, 15 Oct 2008 09:26:37 GMT
-Content-Type: application/x-javascript
-Content-Length: 7750
-Last-Modified: Mon, 15 Sep 2008 08:42:04 GMT
-Connection: keep-alive
-Accept-Ranges: bytes
-
-
-HTTP/1.1 404 Not Found
-Server: qiye/RC1.2
-Date: Thu, 16 Oct 2008 02:26:34 GMT
-Content-Type: text/html
-Content-Length: 527
-Connection: keep-alive
-
-*/
 

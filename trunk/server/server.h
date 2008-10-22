@@ -42,6 +42,11 @@ struct request
 	unsigned int   status_code;
 	http_version_t http_version;
 	http_method_t  http_method;
+
+	//send buf
+	void *buf;       //需要发送的数据
+	size_t size;     //已经发送多少字节的数据
+	size_t length;   //数据的大小
 };
 
 
