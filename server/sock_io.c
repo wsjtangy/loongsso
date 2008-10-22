@@ -62,7 +62,7 @@ void sock_init()
 	server.port      = 7878;
 	server.maxfd     = 0;
 	server.listen_fd = -1;
-	server.root      = "/home/new_you54_user/server/www";
+	server.root      = "/home/lijinxing/server/www";
 	server.conn      = calloc(MAX_FD, sizeof(struct conn_t));
 	
 	sock_epoll_init();
@@ -79,6 +79,10 @@ void sock_close(int fd)
 	if(!c->fd)
 		return;
 	
+	c->req.buf    = NULL;
+	c->req.size   = 0;
+	c->req.length = 0;
+
 	sock_epoll_del(fd);
 	fd_close(fd);
 }
