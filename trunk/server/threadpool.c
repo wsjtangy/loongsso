@@ -29,10 +29,8 @@ struct threadpool
 struct threadpool tp[MAX_THREAD];
 
 //ÈÃÏß³ÌË¯Ãß
-void lock_thread(int id)
+void threadpool_sleep(int id)
 {
-	printf("index = %u\tthread = %lu Ë¯Ãß\r\n", id, pthread_self());
-	
 	tp[id].status = THREADPOOL_FREE;
 	pthread_mutex_lock (&tp[id].mutex);
 
@@ -41,17 +39,10 @@ void lock_thread(int id)
 	   pthread_cond_wait (&tp[id].cond, &tp[id].mutex); 
 	}
 	pthread_mutex_unlock (&tp[id].mutex);
-
-	printf("index = %u\tthread = %lu Ë¯Ãß½áÊø\r\n", id, pthread_self());
-}
-
-void fuc(void *arg)
-{
-	printf("arg = %s\tthread = %lu Ë¯Ãß\r\n", arg, pthread_self());
 }
 
 //Ñ°ÕÒÒ»¸öË¯ÃßµÄÏß³Ì
-int free_thread(PF *handle, void *data)
+int threadpool_fetch(PF *handle, void *data)
 {
 	int i;
 
@@ -71,7 +62,7 @@ int free_thread(PF *handle, void *data)
 	return 0;
 }
 
-void *thread_loop (void *arg)
+void *threadpool_wait(void *arg)
 {
 	void *data;
 	PF   *handle;
@@ -79,7 +70,7 @@ void *thread_loop (void *arg)
 	
 	for(; ;)
 	{
-		lock_thread(index);
+		threadpool_sleep(index);
 		
 		data   = tp[index].data;
 		handle = tp[index].handle;
@@ -89,7 +80,7 @@ void *thread_loop (void *arg)
 	}
 }
 
-int main(int argc, char *argv[])
+int threadpool_init(unsigned int num)
 {
 	int i;
 
@@ -100,12 +91,25 @@ int main(int argc, char *argv[])
 		pthread_mutex_init (&tp[i].mutex, 0);
 		pthread_cond_init (&tp[i].cond, 0);
 		
-		if (pthread_create(&tp[i].id, NULL, thread_loop, &tp[i].index) != 0)
+		if (pthread_create(&tp[i].id, NULL, threadpool_wait, &tp[i].index) != 0)
 		{
 			printf("pthread_create failed\n");
 			return 0;
 		}
 	}
+}
+
+/*
+void fuc(void *arg)
+{
+	printf("arg = %s\tthread = %lu Ë¯Ãß\r\n", arg, pthread_self());
+}
+
+int main(int argc, char *argv[])
+{
+	int i;
+
+
 
 	sleep(2);
 	
@@ -116,3 +120,5 @@ int main(int argc, char *argv[])
 	sleep(3);
 	return 1;
 }
+*/
+
