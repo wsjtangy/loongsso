@@ -237,6 +237,33 @@ int request_parse(char *req_ptr, size_t req_len, int fd)
 	return 1;
 }
 
+//清除超时的timeout fd
+void *clean_timeout(void *arg)
+{
+	int i;
+	time_t epoll_time;
+	struct timespec timeout;	   
+	
+	for(; ;)
+	{
+		epoll_time = time((time_t*)0);
+		for(i = 0; i <= server.maxfd; i++)
+		{
+			struct conn_t *c = &server.conn[i];
+			if(c->fd &&  (c->fd != server.listen_fd) && (epoll_time > (c->now + SOCK_TIMEOUT)))
+			{
+				sock_close(c->fd);
+			}
+		}
+
+		timeout.tv_sec  = time(NULL) + SOCK_TIMEOUT;   
+		timeout.tv_nsec = 0;  
+
+		pthread_mutex_lock(&mutex);
+		pthread_cond_timedwait(&cond,   &mutex,   &timeout);   
+		pthread_mutex_unlock(&mutex);
+	}
+}
 
 int file_load_memory(char *filename)
 {
@@ -500,6 +527,8 @@ int main(int argc, char *argv[])
 	daemon(1, 1);
 	struct rlimit rt;
 	struct sigaction sa;
+	pthread_t      tid;
+	pthread_attr_t attr;
 
 	sa.sa_handler = SIG_IGN;//设定接受到指定信号后的动作为忽略
 	sa.sa_flags   = 0;
@@ -517,7 +546,6 @@ int main(int argc, char *argv[])
 	signal(SIGSEGV, server_down);
 	signal(SIGALRM, server_down);
 
-	//rt.rlim_max = rt.rlim_cur = MAX_FD;
 	rt.rlim_max = 4096;
 	rt.rlim_cur = 1024;
 	
@@ -531,6 +559,17 @@ int main(int argc, char *argv[])
 
 	memdisk = hashmap_new(100);
 
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	pthread_cond_init (&cond, 0);
+	pthread_mutex_init(&mutex, 0);
+
+	if (pthread_create(&tid, &attr, clean_timeout, NULL) != 0)
+	{
+		printf("pthread_create failed\n");
+		return -1;
+	}
 	sock_epoll_wait(-1);
 	return 0;
 }

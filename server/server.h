@@ -2,12 +2,13 @@
 #define SERVER_H
 
 #include <time.h>
+#include <pthread.h>
 #include <sys/time.h>
 #include "hashmap.h"
 #include "sock_epoll.h"
 
 #define  MAX_FD        15000
-#define  SOCK_TIMEOUT  30
+#define  SOCK_TIMEOUT  60
 #define  safe_free(x)  if(x){free(x);x=NULL;}
 #define  RFC_TIME      "%a, %d %b %Y %H:%M:%S GMT"
 #define  RFC_304       "HTTP/1.1 %s\r\nServer: Memhttpd/Beta1.0\r\nDate: %s\r\nContent-Type: text/html\r\nConnection: keep-alive\r\n\r\n"
@@ -74,6 +75,8 @@ struct sock_epoll_t ct;
 
 struct server_t server;
 
+pthread_cond_t   cond;
+pthread_mutex_t  mutex;
 
 // funcs 
 void http_request_read(int fd);

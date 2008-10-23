@@ -67,6 +67,7 @@ int sock_epoll_wait(int timeout)
 		n = epoll_wait(ct.efd, ct.events, ct.max_events, timeout);
 		if(n <= 0) continue;
 		
+		/*
 		// check timeout 
 		epoll_time = time((time_t*)0);
 		for(i = 0; i <= server.maxfd; i++)
@@ -77,7 +78,8 @@ int sock_epoll_wait(int timeout)
 				sock_close(c->fd);
 			}
 		}
-		
+		*/
+
 		for (i = 0, cevents = ct.events; i < n; i++, cevents++) 
 		{	
 			if(cevents->events & (EPOLLHUP | EPOLLERR) && cevents->data.fd != server.listen_fd)
