@@ -314,7 +314,7 @@ void http_request_accept(int fd)
 	}
 	
 	fd_open(client_fd);
-	sock_set_linger(client_fd);
+//	sock_set_linger(client_fd);
 
 	sock_epoll_add(client_fd, EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP);
 }
@@ -406,6 +406,11 @@ void http_request_write(int fd)
 	
 	conn  = &server.conn[fd];
 	
+	if(conn->req.http_method != HTTP_METHOD_GET)
+	{
+		http_request_error(conn, "505 HTTP Version not supported");
+		return ;
+	}
 	if(conn->req.buf && (conn->req.size > 0) && (conn->req.length > 0))
 	{
 		http_reply_body(conn);
@@ -512,7 +517,10 @@ int main(int argc, char *argv[])
 	signal(SIGSEGV, server_down);
 	signal(SIGALRM, server_down);
 
-	rt.rlim_max = rt.rlim_cur = MAX_FD;
+	//rt.rlim_max = rt.rlim_cur = MAX_FD;
+	rt.rlim_max = 4096;
+	rt.rlim_cur = 1024;
+	
 	if (setrlimit(RLIMIT_NOFILE, &rt) == -1) 
 	{
 		perror("setrlimit");
