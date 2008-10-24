@@ -558,7 +558,7 @@ int main(int argc, char *argv[])
 	sock_init();
 
 	memdisk = hashmap_new(100);
-
+/*
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
@@ -570,6 +570,7 @@ int main(int argc, char *argv[])
 		printf("pthread_create failed\n");
 		return -1;
 	}
+*/
 	sock_epoll_wait(-1);
 	return 0;
 }
