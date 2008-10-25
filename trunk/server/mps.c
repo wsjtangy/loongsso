@@ -17,15 +17,15 @@
 #include <sys/select.h>
 #include <sys/sendfile.h>
 #include "mps.h"
+#include "hashmap.h"
 
 #define  MAX_FD        15000
 #define  MAX_PROCESS   3
 #define BUFFER         "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\nContent-Type: text/html\r\n\r\nHello"
 
-
-int   listenfd; 
-pid_t pid[MAX_PROCESS];
-
+hashmap  *mc;
+int      listenfd; 
+pid_t    pid[MAX_PROCESS];
 
 
 const char *mimetype(const char *filename)
@@ -333,7 +333,6 @@ void fd_open(struct server_t *server, int fd)
 	{
 		server->maxfd = fd;
 	}
-	
 	sock_set_options(fd);
 }
 
@@ -342,12 +341,10 @@ static void fd_close(struct server_t *server, int fd)
 	struct conn_t *c = &server->conn[fd];
 
 	c->fd = 0;
-
 	if(fd >= server->maxfd) 
 	{
 		server->maxfd--;
 	}
-
 	close(fd);
 }
 
@@ -504,6 +501,7 @@ void http_reply_header(struct server_t *server, struct conn_t *conn, time_t file
 void http_request_write(struct server_t *server, int fd)
 {
 	int rc;
+	time_t ftime;
 	struct stat sbuf;
 	char filename[200];
 	struct conn_t *conn;
@@ -531,13 +529,29 @@ void http_request_write(struct server_t *server, int fd)
 		return ;
 	}
 	
-	fstat(conn->req.fd, &sbuf);
+//	printf("filename = %s\r\n", filename);
+
+	recs = hashmap_get(mc, conn->req.filepath);
+	if(recs)
+	{
+		printf("size = %u\tfile_time = %u\r\n", recs->length, recs->file_time);
+		conn->req.size   = 0;
+		conn->req.length = recs->length;
+		ftime            = recs->file_time;
+	}
+	else
+	{
+		fstat(conn->req.fd, &sbuf);
 	
-	conn->req.size   = 0;
-	conn->req.length = sbuf.st_size;
-	
-	http_reply_header(server, conn, sbuf.st_mtime);
-//	sock_close(server, fd);
+		conn->req.size   = 0;
+		conn->req.length = sbuf.st_size;
+		ftime            = sbuf.st_mtime;
+
+		hashmap_add(mc, conn->req.filepath, sbuf.st_size, sbuf.st_mtime);
+	}
+
+	printf("http_reply_header\r\n");
+	http_reply_header(server, conn, ftime);
 }
 
 void http_request_read(struct server_t *server, int fd)
@@ -578,7 +592,7 @@ void http_request_read(struct server_t *server, int fd)
 	evio_epoll_mod(&server->ct, fd, EPOLLOUT | EPOLLPRI | EPOLLERR | EPOLLHUP);
 }
 
-void *serv_epoll(void *arg)
+void *sock_listen_event(void *arg)
 {
 	int n, i;
 	time_t epoll_time;
@@ -600,8 +614,6 @@ void *serv_epoll(void *arg)
 				sock_close(server, c->fd);
 			}
 		}
-
-	//	printf("pid = %d\r\n", getpid());
 		
         for (i = 0, cevents = server->ct.events; i < n; i++, cevents++)
         {
@@ -627,19 +639,29 @@ static void child_main()
 {
 	int connfd; 
 	pthread_t tid;
+	struct rlimit rt;
     pthread_attr_t attr;
 	struct sockaddr_in addr;
 
 	struct server_t server;
 	int socklen = sizeof(struct sockaddr);
 	
+	rt.rlim_max = 4096;
+	rt.rlim_cur = 1024;
+	
+	if (setrlimit(RLIMIT_NOFILE, &rt) == -1) 
+	{
+		perror("setrlimit");
+		_exit(EXIT_FAILURE);
+	}
+
 	server.root = "/home/lijinxing/mps";
 	server.conn      = calloc(MAX_FD, sizeof(struct conn_t));
 	evio_epoll_init(&server.ct, MAX_FD);
 	
 	pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
-    if (pthread_create(&tid, &attr, serv_epoll, (void *)&server) != 0)
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    if (pthread_create(&tid, &attr, sock_listen_event, (void *)&server) != 0)
     {
           printf("pthread_create failed\n");
           return ;
@@ -677,12 +699,13 @@ static void server_down(int signum)
 {
 	close(listenfd);
 	kill_children();
+	hashmap_destroy(mc);
 	exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char *argv[])
 {
-	daemon(1, 1);
+//	daemon(1, 1);
 
 	int i;
 	struct sigaction sa;
@@ -697,7 +720,8 @@ int main(int argc, char *argv[])
 		perror("failed to ignore SIGPIPE; sigaction");
 		exit(EXIT_FAILURE);
 	}
-
+	
+	mc  = hashmap_new(769);
 	sock_listen_open(8000);
 	
 	for(i=0; i<MAX_PROCESS; i++)
