@@ -528,13 +528,11 @@ void http_request_write(struct server_t *server, int fd)
 		http_request_error(server, conn, "404 Not Found");
 		return ;
 	}
-	
-//	printf("filename = %s\r\n", filename);
 
 	recs = hashmap_get(mc, conn->req.filepath);
 	if(recs)
 	{
-		printf("size = %u\tfile_time = %u\r\n", recs->length, recs->file_time);
+//		printf("size = %u\tfile_time = %u\r\n", recs->length, recs->file_time);
 		conn->req.size   = 0;
 		conn->req.length = recs->length;
 		ftime            = recs->file_time;
@@ -550,7 +548,6 @@ void http_request_write(struct server_t *server, int fd)
 		hashmap_add(mc, conn->req.filepath, sbuf.st_size, sbuf.st_mtime);
 	}
 
-	printf("http_reply_header\r\n");
 	http_reply_header(server, conn, ftime);
 }
 
@@ -631,7 +628,6 @@ void *sock_listen_event(void *arg)
 			}
         }
     }
-
 }
 
 
@@ -655,7 +651,7 @@ static void child_main()
 		_exit(EXIT_FAILURE);
 	}
 
-	server.root = "/home/lijinxing/mps";
+	server.root = "/home/lijinxing/transfd/server/www";
 	server.conn      = calloc(MAX_FD, sizeof(struct conn_t));
 	evio_epoll_init(&server.ct, MAX_FD);
 	
@@ -705,7 +701,7 @@ static void server_down(int signum)
 
 int main(int argc, char *argv[])
 {
-//	daemon(1, 1);
+	daemon(1, 1);
 
 	int i;
 	struct sigaction sa;
