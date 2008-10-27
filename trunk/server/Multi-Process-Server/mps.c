@@ -540,6 +540,7 @@ void http_request_write(struct server_t *server, int fd)
 	
 	conn  = &server->conn[fd];
 	
+//	printf("http_request_write\r\n");
 	if(conn->req.http_method != HTTP_METHOD_GET)
 	{
 		http_request_error(server, conn, "505 HTTP Version not supported");
@@ -554,6 +555,7 @@ void http_request_write(struct server_t *server, int fd)
 	memset(&filename, 0, sizeof(filename));
 	snprintf(filename, sizeof(filename), "%s%s", server->root, conn->req.filepath);
 	
+//	printf("filename = %s\r\n", filename);
 	recs  = hashmap_get(mc, conn->req.filepath);
 	if(recs)
 	{		
@@ -677,7 +679,7 @@ static void child_main()
 		_exit(EXIT_FAILURE);
 	}
 
-	server.root = "/home/lijinxing/mps/libsharedmem-0.0.5";
+	server.root = "/home/lijinxing/server/www";
 	server.conn      = calloc(MAX_FD, sizeof(struct conn_t));
 	evio_epoll_init(&server.ct, MAX_FD);
 	
@@ -725,6 +727,39 @@ static void server_down(int signum)
 	kill_children();
 	exit(EXIT_SUCCESS);
 }
+
+
+int daemon(int nochdir, int noclose)
+{
+    int fd;
+
+    switch (fork()) 
+	{
+		case -1:
+			return (-1);
+		case 0:
+			break;
+		default:
+			_exit(EXIT_SUCCESS);
+    }
+
+    if (setsid() == -1)
+        return (-1);
+
+    if (nochdir == 0)
+        (void)chdir("/");
+
+    if (noclose==0 && (fd = open("/dev/null", O_RDWR, 0)) != -1) 
+	{
+        (void)dup2(fd, STDIN_FILENO);
+        (void)dup2(fd, STDOUT_FILENO);
+        (void)dup2(fd, STDERR_FILENO);
+        if (fd > STDERR_FILENO)
+            (void)close(fd);
+    }
+    return (0);
+}
+
 
 int main(int argc, char *argv[])
 {
