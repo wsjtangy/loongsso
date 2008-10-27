@@ -167,7 +167,7 @@ int hashmap_add(hashmap *h, const char *path, void *content, unsigned int length
         ind = (code + (int)pow(++off,2)) % size;
 	}
 	
-	printf("hashmap_add ind = %d\tpath = %s\r\n", ind, path);
+//	printf("hashmap_add ind = %d\tpath = %s\r\n", ind, path);
 
 	recs[ind].off        = offest;
 	recs[ind].hash       = code;
