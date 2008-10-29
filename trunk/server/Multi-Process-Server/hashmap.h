@@ -6,9 +6,7 @@ typedef struct hashmap hashmap;
 
 struct record 
 {
-	long    off;
-    char    path[128];       //文件路径
-    void    *content;        //文件内容
+    char    path[100];       //文件路径
 	time_t  file_time;       //文件的最后修改时间
 	time_t  visit_time;      //最后被发送的时间
 	unsigned int length;     //文件内容的大小
@@ -18,17 +16,12 @@ struct record
 
 struct hashmap 
 {
-	long    p;
-	long    c;
-	uint64_t length;
-    struct record *records;
-    unsigned int records_count;
-    unsigned int size_index;
+    struct record  *records;
+	unsigned int   size_index;
+    unsigned int   records_count;
 };
 
 void hashmap_destroy(hashmap *h);
-
-uint64_t hashmap_length(hashmap *h);
 
 hashmap *hashmap_new(unsigned int capacity);
 
@@ -36,6 +29,6 @@ int hashmap_remove(hashmap *h, const char *path);
 
 const struct record *hashmap_get(hashmap *h, const char *path);
 
-int hashmap_add(hashmap *h, const char *path, void *content, unsigned int length, time_t file_time, long offest);
+int hashmap_add(hashmap *h, char *path, unsigned int length, time_t file_time);
 
 #endif

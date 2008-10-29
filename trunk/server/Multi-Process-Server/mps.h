@@ -4,9 +4,6 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/epoll.h>
-#include "sharedmem.h"
-#include "shmalloc.h"
-#include "hashmap.h"
 
 #define  MAX_FD        15000
 #define  SOCK_TIMEOUT  40
@@ -53,9 +50,9 @@ struct request
 	http_version_t http_version;
 
 	//send buf
-	void         *buf;      //需要发送的数据
-	unsigned int size;      //已经发送多少字节的数据
-	unsigned int length;    //数据的大小
+	int          fd;        //file open fd
+	unsigned int size;     //已经发送多少字节的数据
+	unsigned int length;   //数据的大小
 };
 
 
@@ -76,8 +73,6 @@ struct server_t
 
 // global vars 
 
-sharedmem_t        shm;
-sharedmem_alloc_t  shmalloc;
 
 // funcs 
 

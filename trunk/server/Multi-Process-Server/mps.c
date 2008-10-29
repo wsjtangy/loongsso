@@ -17,9 +17,11 @@
 #include <sys/select.h>
 #include <sys/sendfile.h>
 #include "mps.h"
+#include "hashmap.h"
 
 #define  MAX_FD        15000
 #define  MAX_PROCESS   3
+#define BUFFER         "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\nContent-Type: text/html\r\n\r\nHello"
 
 hashmap  *mc;
 int      listenfd; 
@@ -352,7 +354,8 @@ void sock_close(struct server_t *server, int fd)
 	if(!c->fd)
 		return;
 	
-	c->req.buf    = NULL;
+	close(c->req.fd);
+	c->req.fd     = -1;
 	c->req.size   = 0;
 	c->req.length = 0;
 
@@ -386,32 +389,6 @@ static void sock_listen_open(unsigned short port)
 	listen(sd, MAX_FD);
 
 	listenfd = sd;
-}
-
-int file_load_memory(char *filename, char *filepath)
-{
-	int  fd;
-	long off;
-	struct stat sbuf;
-	unsigned char *buf;
-
-	fd = open(filename, O_RDONLY);
-	if(fd == -1) return 0;
-
-	fstat(fd, &sbuf);
-
-	off = sharedmem_alloc(&shmalloc, sbuf.st_size + 1);
-	if(off == -1) return 0;
-
-	buf = (unsigned char *)sharedmem_alloc_get_ptr(&shmalloc, off);
-
-
-	read(fd, buf, sbuf.st_size);
-	close(fd);
-
-	hashmap_add(mc, filepath, buf, sbuf.st_size, sbuf.st_mtime, off);
-
-	return 1;
 }
 
 
@@ -453,11 +430,13 @@ void http_request_error(struct server_t *server, struct conn_t *conn, char *cmd)
 
 void http_reply_body(struct server_t *server, struct conn_t *conn)
 {
+	off_t pos;
 	ssize_t bytes;
-
+	
+	pos   = conn->req.size;
 	bytes = 0;
 	
-	bytes = write(conn->fd, conn->req.buf + conn->req.size, (conn->req.length - conn->req.size));
+	bytes = sendfile(conn->fd, conn->req.fd, &pos , (conn->req.length - conn->req.size));
 	if(bytes < 0)
 	{
 		switch (errno) 
@@ -493,7 +472,6 @@ void http_reply_header(struct server_t *server, struct conn_t *conn, time_t file
 	char header[400];
 	char timebuf[100];
 	char lastime[100];
-	struct iovec vectors[2];
 	
 	bytes = 0;
 	memset(&header, 0, sizeof(header));
@@ -511,23 +489,14 @@ void http_reply_header(struct server_t *server, struct conn_t *conn, time_t file
 
 	header_len = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nServer: Memhttpd/Beta1.0\r\nDate: %s\r\nContent-Type: %s\r\nContent-Length: %u\r\nLast-Modified: %s\r\nConnection: keep-alive\r\nAccept-Ranges: bytes\r\n\r\n", timebuf, mimetype(conn->req.uri), conn->req.length, lastime);
 	
-	vectors[0].iov_base = header;
-	vectors[0].iov_len  = header_len;
-	vectors[1].iov_base = conn->req.buf;
-	vectors[1].iov_len  = conn->req.length;
-
-	bytes = writev(conn->fd, vectors, 2);
-	if(bytes < (header_len + conn->req.length))
+	bytes = write(conn->fd, header, header_len);
+	if(bytes != header_len)
 	{
-		conn->req.size = bytes - header_len;
-		evio_epoll_mod(&server->ct, conn->fd, EPOLLOUT | EPOLLPRI | EPOLLERR | EPOLLHUP);
+		sock_close(server, conn->fd);
 		return ;
 	}
-
-	
-	sock_close(server, conn->fd);
+	evio_epoll_mod(&server->ct, conn->fd, EPOLLOUT | EPOLLPRI | EPOLLERR | EPOLLHUP);
 }
-
 
 void http_request_write(struct server_t *server, int fd)
 {
@@ -540,13 +509,12 @@ void http_request_write(struct server_t *server, int fd)
 	
 	conn  = &server->conn[fd];
 	
-//	printf("http_request_write\r\n");
 	if(conn->req.http_method != HTTP_METHOD_GET)
 	{
 		http_request_error(server, conn, "505 HTTP Version not supported");
 		return ;
 	}
-	if(conn->req.buf && (conn->req.size > 0) && (conn->req.length > 0))
+	if((conn->req.fd > 0) && (conn->req.size >= 0) && (conn->req.length > 0))
 	{
 		http_reply_body(server, conn);
 		return ;
@@ -554,29 +522,36 @@ void http_request_write(struct server_t *server, int fd)
 
 	memset(&filename, 0, sizeof(filename));
 	snprintf(filename, sizeof(filename), "%s%s", server->root, conn->req.filepath);
+	conn->req.fd = open(filename, O_RDONLY);
+	if(conn->req.fd == -1)
+	{
+		http_request_error(server, conn, "404 Not Found");
+		return ;
+	}
 	
 //	printf("filename = %s\r\n", filename);
-	recs  = hashmap_get(mc, conn->req.filepath);
-	if(recs)
-	{		
-		conn->req.size   = 0;
-		conn->req.buf    = recs->content;
-		conn->req.length = recs->length;
-		http_reply_header(server, conn, recs->file_time);
-		return ;
-	}
-	rc   = file_load_memory(filename, conn->req.filepath);
+
 	recs = hashmap_get(mc, conn->req.filepath);
-	if(rc && recs)
+	if(recs)
 	{
+//		printf("size = %u\tfile_time = %u\r\n", recs->length, recs->file_time);
 		conn->req.size   = 0;
-		conn->req.buf    = recs->content;
 		conn->req.length = recs->length;
-		http_reply_header(server, conn, recs->file_time);
-		return ;
+		ftime            = recs->file_time;
+	}
+	else
+	{
+		fstat(conn->req.fd, &sbuf);
+	
+		conn->req.size   = 0;
+		conn->req.length = sbuf.st_size;
+		ftime            = sbuf.st_mtime;
+
+		hashmap_add(mc, conn->req.filepath, sbuf.st_size, sbuf.st_mtime);
 	}
 
-	http_request_error(server, conn, "404 Not Found");
+//	printf("http_reply_header\r\n");
+	http_reply_header(server, conn, ftime);
 }
 
 void http_request_read(struct server_t *server, int fd)
@@ -656,6 +631,7 @@ void *sock_listen_event(void *arg)
 			}
         }
     }
+
 }
 
 
@@ -679,7 +655,7 @@ static void child_main()
 		_exit(EXIT_FAILURE);
 	}
 
-	server.root = "/home/lijinxing/server/www";
+	server.root = "/home/lijinxing/transfd/server/www";
 	server.conn      = calloc(MAX_FD, sizeof(struct conn_t));
 	evio_epoll_init(&server.ct, MAX_FD);
 	
@@ -722,44 +698,10 @@ void kill_children()
 static void server_down(int signum)
 {
 	close(listenfd);
-	hashmap_destroy(mc);
-	sharedmem_close(&shm);
 	kill_children();
+	hashmap_destroy(mc);
 	exit(EXIT_SUCCESS);
 }
-
-
-int daemon(int nochdir, int noclose)
-{
-    int fd;
-
-    switch (fork()) 
-	{
-		case -1:
-			return (-1);
-		case 0:
-			break;
-		default:
-			_exit(EXIT_SUCCESS);
-    }
-
-    if (setsid() == -1)
-        return (-1);
-
-    if (nochdir == 0)
-        (void)chdir("/");
-
-    if (noclose==0 && (fd = open("/dev/null", O_RDWR, 0)) != -1) 
-	{
-        (void)dup2(fd, STDIN_FILENO);
-        (void)dup2(fd, STDOUT_FILENO);
-        (void)dup2(fd, STDERR_FILENO);
-        if (fd > STDERR_FILENO)
-            (void)close(fd);
-    }
-    return (0);
-}
-
 
 int main(int argc, char *argv[])
 {
@@ -779,18 +721,6 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	
-	if (sharedmem_create(&shm, "/test2.shm", 732594094) != 0)
-    {
-        printf("sharedmem_create(): %s\n", sharedmem_get_error_string(&shm));
-        return 0;
-    }
-    // initialize allocation 
-    if (sharedmem_alloc_create(&shmalloc, &shm) != 0)
-    {
-        printf("sharedmem_alloc_create(): %s\n", sharedmem_get_error_string(&shm));
-        return 0;
-    }
-
 	mc  = hashmap_new(769);
 	sock_listen_open(8000);
 	
