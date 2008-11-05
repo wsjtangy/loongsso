@@ -27,6 +27,14 @@ hashmap             *mc;
 int                 listenfd; 
 struct mps_process  processes[MAX_PROCESS];
 
+volatile sig_atomic_t signal_exitc = 1;
+
+void sigterm_handler (int sig)
+{
+	signal_exitc = 0;
+	_exit(0);
+}
+
 const char *mimetype(const char *filename)
 {
 	static const char *(assocNames[][2]) =
@@ -644,7 +652,7 @@ void *sock_listen_event(void *arg)
 		
         for (i = 0, cevents = server->ct.events; i < n; i++, cevents++)
         {
-			if(cevents->events & (EPOLLHUP | EPOLLERR)  && (cevents->data.fd != server->proc->channel[0]))
+			if(cevents->events & (EPOLLHUP | EPOLLERR))
 			{
 				sock_close(server, cevents->data.fd);
 			}
@@ -655,19 +663,19 @@ void *sock_listen_event(void *arg)
 				bytes = read(cevents->data.fd, buf, sizeof(buf));
 				
 				write(cevents->data.fd, "c", 1);
-				printf("子进程 write\r\n");
+			//	printf("子进程 write\r\n");
 			}
 			else if(cevents->events & EPOLLIN)
 			{
-				printf("http_request_read开始\r\n");
+			//	printf("http_request_read开始\r\n");
 				http_request_read(server, cevents->data.fd);
-				printf("http_request_read结束\r\n");
+			//	printf("http_request_read结束\r\n");
 			}
 			else if(cevents->events & EPOLLOUT)
 			{
-				printf("http_request_write开始\r\n");
+			//	printf("http_request_write开始\r\n");
 				http_request_write(server, cevents->data.fd);
-				printf("http_request_write结束\r\n");
+			//	printf("http_request_write结束\r\n");
 			}
         }
     }
@@ -681,13 +689,10 @@ static void child_main(struct mps_process *proc)
 	struct rlimit rt;
     pthread_attr_t attr;
 	struct sockaddr_in addr;
+	struct sigaction sigterm;
 
 	struct server_t server;
 	int socklen = sizeof(struct sockaddr);
-
-	signal(SIGCHLD, SIG_DFL);
-	signal(SIGTERM, SIG_DFL);
-	signal(SIGHUP,  SIG_DFL);
 
 /*
 	rt.rlim_max = 4096;
@@ -699,8 +704,14 @@ static void child_main(struct mps_process *proc)
 		_exit(EXIT_FAILURE);
 	}
 */	
+	if (sigaction(SIGTERM, &sigterm, NULL) < 0)
+	{
+		perror("unable to setup signal handler for SIGTERM");
+		_exit(2);
+	}
+
 	server.proc  = proc;
-	server.root  = "/home/lijinxing/transfd/server/www";
+	server.root  = "/home/lijinxing/server/www";
 	server.conn  = calloc(MAX_FD, sizeof(struct conn_t));
 	evio_epoll_init(&server.ct, MAX_FD);
 	
@@ -712,10 +723,9 @@ static void child_main(struct mps_process *proc)
           return ;
     }
 	
-//	printf("child_main\tpid = %lu\tproc->channel[0] = %d\r\n", getpid(), proc->channel[0]);
-//	evio_epoll_add(&server.ct, proc->channel[0], EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP);
+	evio_epoll_add(&server.ct, proc->channel[0], EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP);
 	
-	for(; ;)
+	while (signal_exitc)
 	{
 		connfd = accept(listenfd, (struct sockaddr*)&addr, (socklen_t *)&socklen);
 
@@ -724,8 +734,6 @@ static void child_main(struct mps_process *proc)
 			printf("Accept returned an error (%s) ... retrying.", strerror(errno));
 			continue;
 		}
-		
-		printf("accept = %d\tpid = %lu\r\n", connfd,  getpid()); 
 
 		fd_open(&server, connfd);
 		evio_epoll_add(&server.ct, connfd, EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP);
@@ -755,9 +763,10 @@ static void server_down(int signum)
 
 int main(int argc, char *argv[])
 {
-//	daemon(1, 1);
+	daemon(1, 1);
 
-	int i, n;
+	int i;
+	ssize_t n;
 	char   buf[3];
 	fd_set readfds;
 	struct timeval tv;
@@ -773,7 +782,8 @@ int main(int argc, char *argv[])
 		perror("failed to ignore SIGPIPE; sigaction");
 		exit(EXIT_FAILURE);
 	}
-	
+	signal(SIGCLD, SIG_IGN);
+
 	mc  = hashmap_new(769);
 	sock_listen_open(8000);
 	
@@ -819,7 +829,7 @@ int main(int argc, char *argv[])
 				continue;
 			}
 
-			tv.tv_sec  = 10;
+			tv.tv_sec  = 20;
 			tv.tv_usec = 0;
 			
 			FD_ZERO(&readfds);
