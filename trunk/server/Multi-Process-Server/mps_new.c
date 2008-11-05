@@ -32,7 +32,7 @@ volatile sig_atomic_t signal_exitc = 1;
 void sigterm_handler (int sig)
 {
 	signal_exitc = 0;
-	_exit(0);
+	_exit(EXIT_SUCCESS);
 }
 
 const char *mimetype(const char *filename)
@@ -694,7 +694,7 @@ static void child_main(struct mps_process *proc)
 	struct server_t server;
 	int socklen = sizeof(struct sockaddr);
 
-/*
+
 	rt.rlim_max = 4096;
 	rt.rlim_cur = 1024;
 	
@@ -703,15 +703,15 @@ static void child_main(struct mps_process *proc)
 		perror("setrlimit");
 		_exit(EXIT_FAILURE);
 	}
-*/	
+	
 	if (sigaction(SIGTERM, &sigterm, NULL) < 0)
 	{
 		perror("unable to setup signal handler for SIGTERM");
-		_exit(2);
+		_exit(EXIT_FAILURE);
 	}
 
 	server.proc  = proc;
-	server.root  = "/home/lijinxing/server/www";
+	server.root  = "/home/lijinxing/transfd/server/www";
 	server.conn  = calloc(MAX_FD, sizeof(struct conn_t));
 	evio_epoll_init(&server.ct, MAX_FD);
 	
@@ -720,7 +720,7 @@ static void child_main(struct mps_process *proc)
     if (pthread_create(&tid, &attr, sock_listen_event, (void *)&server) != 0)
     {
           printf("pthread_create failed\n");
-          return ;
+          _exit(EXIT_FAILURE);
     }
 	
 	evio_epoll_add(&server.ct, proc->channel[0], EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP);
@@ -761,6 +761,31 @@ static void server_down(int signum)
 	exit(EXIT_SUCCESS);
 }
 
+void mps_spawn_process(struct mps_process *proc)
+{
+	if (socketpair(AF_UNIX, SOCK_STREAM, 0, proc->channel) == -1)
+	{
+		printf("Call socketpair error, errno is %d\n", errno);
+		server_down(0);
+	}
+
+	proc->pid = fork();
+	if(proc->pid == -1)
+	{
+		//fork error
+		server_down(0);
+	}
+	else if (proc->pid == 0)
+	{
+		close(proc->channel[1]);
+
+		sock_set_noblocking(proc->channel[0]);
+		child_main(proc);
+	}
+
+	close(proc->channel[0]);
+}
+
 int main(int argc, char *argv[])
 {
 	daemon(1, 1);
@@ -789,22 +814,7 @@ int main(int argc, char *argv[])
 	
 	for(i=0; i<MAX_PROCESS; i++)
 	{
-		if (socketpair(AF_UNIX, SOCK_STREAM, 0, processes[i].channel) == -1)
-		{
-			printf("Call socketpair error, errno is %d\n", errno);
-			server_down(0);
-		}
-
-		processes[i].pid = fork();
-		if (processes[i].pid == 0)
-		{
-			close(processes[i].channel[1]);
-
-			sock_set_noblocking(processes[i].channel[0]);
-			child_main(&processes[i]);
-		}
-
-		close(processes[i].channel[0]);
+		mps_spawn_process(&processes[i]);
 	}
 
 	signal(SIGTERM, server_down);
@@ -822,10 +832,12 @@ int main(int argc, char *argv[])
 		{
 			memset(&buf, 0, sizeof(buf));
 			n = write(processes[i].channel[1], "p", 1);
-			if(n != 1)
+			if(n < 0)
 			{
-				printf("write kill\r\n");
+				printf("write kill %lu\r\n", processes[i].pid);
 				kill(processes[i].pid, SIGTERM);
+				close(processes[i].channel[1]);
+				mps_spawn_process(&processes[i]);
 				continue;
 			}
 
@@ -840,16 +852,20 @@ int main(int argc, char *argv[])
 			if (!FD_ISSET(processes[i].channel[1], &readfds)) 
 			{
 				// timeout
-				printf("timeout kill\r\n");
+				printf("timeout kill %lu\r\n", processes[i].pid);
 				kill(processes[i].pid, SIGTERM);
+				close(processes[i].channel[1]);
+				mps_spawn_process(&processes[i]);
 				continue;
 			}
 			
 			n = read(processes[i].channel[1], buf, sizeof(buf));
-			if(n != 1)
+			if(n < 0)
 			{
-				printf("n = %d read kill\r\n", n);
+				printf("read kill %lu\r\n", processes[i].pid);
 				kill(processes[i].pid, SIGTERM);
+				close(processes[i].channel[1]);
+				mps_spawn_process(&processes[i]);
 			}
 		}
 	}
