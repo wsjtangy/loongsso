@@ -698,12 +698,12 @@ static void child_main(struct mps_process *proc)
 	rt.rlim_max = 4096;
 	rt.rlim_cur = 1024;
 	
-	if (setrlimit(RLIMIT_NOFILE, &rt) == -1) 
+/*	if (setrlimit(RLIMIT_NOFILE, &rt) == -1) 
 	{
 		perror("setrlimit");
 		_exit(EXIT_FAILURE);
 	}
-	
+*/	
 	if (sigaction(SIGTERM, &sigterm, NULL) < 0)
 	{
 		perror("unable to setup signal handler for SIGTERM");
@@ -711,7 +711,7 @@ static void child_main(struct mps_process *proc)
 	}
 
 	server.proc  = proc;
-	server.root  = "/home/lijinxing/transfd/server/www";
+	server.root  = "/home/lijinxing/server/www";
 	server.conn  = calloc(MAX_FD, sizeof(struct conn_t));
 	evio_epoll_init(&server.ct, MAX_FD);
 	
