@@ -31,6 +31,7 @@ volatile sig_atomic_t signal_exitc = 1;
 
 void sigterm_handler (int sig)
 {
+	printf("退出\r\n");
 	signal_exitc = 0;
 	_exit(EXIT_SUCCESS);
 }
@@ -633,12 +634,12 @@ void *sock_listen_event(void *arg)
 	struct epoll_event *cevents;
 	struct server_t *server = (struct server_t *)arg;
 	
-	//printf("sock_listen_event\tpid = %lu\tproc->channel[0] = %d\r\n", getpid(), server->proc->channel[0]);
+//	printf("sock_listen_event\tpid = %lu\tproc->channel[0] = %d\r\n", getpid(), server->proc->channel[0]);
 	for( ; ; )
     {
 		n = epoll_wait(server->ct.efd, server->ct.events, server->ct.max_events, -1);
 		if (n == -1) continue;
-
+		
 		// check timeout 
 		epoll_time = time((time_t*)0);
 		for(i = 0; i <= server->maxfd; i++)
@@ -650,10 +651,13 @@ void *sock_listen_event(void *arg)
 			}
 		}
 		
+
+	//	printf("开始处理事件\r\n");
         for (i = 0, cevents = server->ct.events; i < n; i++, cevents++)
         {
 			if(cevents->events & (EPOLLHUP | EPOLLERR))
 			{
+			//	printf("sock_close = %d\r\n", cevents->data.fd);
 				sock_close(server, cevents->data.fd);
 			}
 			else if(cevents->events & EPOLLIN && (cevents->data.fd == server->proc->channel[0]))
@@ -709,10 +713,11 @@ static void child_main(struct mps_process *proc)
 		perror("unable to setup signal handler for SIGTERM");
 		_exit(EXIT_FAILURE);
 	}
-
-	server.proc  = proc;
-	server.root  = "/home/lijinxing/server/www";
-	server.conn  = calloc(MAX_FD, sizeof(struct conn_t));
+	
+	server.maxfd  = 0;
+	server.proc   = proc;
+	server.root   = "/home/lijinxing/transfd/server/www";
+	server.conn   = calloc(MAX_FD, sizeof(struct conn_t));
 	evio_epoll_init(&server.ct, MAX_FD);
 	
 	pthread_attr_init(&attr);
@@ -734,7 +739,8 @@ static void child_main(struct mps_process *proc)
 			printf("Accept returned an error (%s) ... retrying.", strerror(errno));
 			continue;
 		}
-
+		
+	//	printf("connfd = %d\tpid = %d\r\n", connfd, getpid());
 		fd_open(&server, connfd);
 		evio_epoll_add(&server.ct, connfd, EPOLLIN | EPOLLPRI | EPOLLERR | EPOLLHUP);
 	}
