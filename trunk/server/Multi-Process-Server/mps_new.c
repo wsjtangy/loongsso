@@ -29,6 +29,114 @@ struct mps_process  processes[MAX_PROCESS];
 
 volatile sig_atomic_t signal_exitc = 1;
 
+
+struct mem_mime_t
+{
+	const char *name;
+	const char *type;
+}mem_mime[] = {
+	{ "c",       "text/plain"                         },
+	{ "js",      "text/javascript"                    },
+	{ "gz",      "application/x-gzip"                 },
+	{ "ps",      "application/postscript"             },
+	{ "pdf",     "application/pdf"                    },
+	{ "dvi",     "application/x-dvi"                  },
+	{ "tgz",     "application/x-tgz"                  },
+	{ "tar",     "application/x-tar"                  },
+	{ "zip",     "application/zip"                    },
+	{ "mp3",     "audio/mpeg"                         },
+	{ "m3u",     "audio/x-mpegurl"                    },
+	{ "wma",     "audio/x-ms-wma"                     },
+	{ "wax",     "audio/x-ms-wax"                     },
+	{ "ogg",     "application/ogg"                    },
+	{ "wav",     "audio/x-wav"                        },
+	{ "gif",     "image/gif"                          },
+	{ "jar",     "application/x-java-archive"         },
+	{ "jpg",     "image/jpeg"                         },
+	{ "jpeg",    "image/jpeg"                         },
+	{ "png",     "image/png"                          },
+	{ "xbm",     "image/x-xbitmap"                    },
+	{ "xpm",     "image/x-xbitmap"                    },
+	{ "xwd",     "image/x-xwindowdump"                },
+	{ "css",     "text/css"                           },
+	{ "asc",     "text/plain"                         },
+	{ "cpp",     "text/plain"                         },
+	{ "htm",     "text/html"                          },
+	{ "html",    "text/html"                          },
+	{ "log",     "text/plain"                         },
+	{ "txt",     "text/plain"                         },
+	{ "conf",    "text/plain"                         },
+	{ "dtd",     "text/xml"                           },
+	{ "xml",     "text/xml"                           },
+	{ "mov",     "video/quicktime"                    },
+	{ "mpg",     "video/mpeg"                         },
+	{ "mpeg",    "video/mpeg"                         },
+	{ "qt",      "video/quicktime"                    },
+	{ "avi",     "video/x-msvideo"                    },
+	{ "asf",     "video/x-ms-asf"                     },
+	{ "asx",     "video/x-ms-asf"                     },
+	{ "wmv",     "video/x-ms-wmv"                     },
+	{ "bz2",     "application/x-bzip"                 },
+	{ "tbz",     "application/x-bzip-compressed-tar"  },
+	{ "sig",     "application/pgp-signature"          },
+	{ "spl",     "application/futuresplash"           },
+	{ "swf",     "application/x-shockwave-flash"      },
+	{ "pac",     "application/x-ns-proxy-autoconfig"  },
+	{ "class",   "application/octet-stream"           },
+	{ "tar.gz",  "application/x-tgz"                  },
+	{ "torrent", "application/x-bittorrent"           },
+	{ "tar.bz2", "application/x-bzip-compressed-tar"  },
+	{ "",        "application/octet-stream"           }
+};
+
+struct mem_state_t
+{
+	const size_t  code;
+	const char    *type;
+}mem_state[] = {
+	{ 100, "Continue"                       },
+	{ 101, "Switching Protocols"            },
+	{ 200, "OK"                             },
+	{ 201, "Created"                        },
+	{ 202, "Accepted"                       },
+	{ 203, "Non-Authoritative Information"  },
+	{ 204, "No Content"                     },
+	{ 205, "Reset Content"                  },
+	{ 206, "Partial Content"                },
+	{ 300, "Multiple Choices"               },
+	{ 301, "Moved Permanently"              },
+	{ 302, "Moved Temporarily"              },
+	{ 303, "See Other"                      },
+	{ 304, "Not Modified"                   },
+	{ 305, "Use Proxy"                      },
+	{ 400, "Bad Request"                    },
+	{ 401, "Unauthorized"                   },
+	{ 402, "Payment Required"               },
+	{ 403, "Forbidden"                      },
+	{ 404, "Not Found"                      },
+	{ 405, "Method Not Allowed"             },
+	{ 406, "Not Acceptable"                 },
+	{ 407, "Proxy Authentication Required"  },
+	{ 408, "Request Time-out"               },
+	{ 409, "Conflict"                       },
+	{ 410, "Gone"                           },
+	{ 411, "SLength Required"               },
+	{ 412, "Precondition Failed"            },
+	{ 413, "Request Entity Too Large"       },
+	{ 414, "Request-URI Too Large"          },
+	{ 415, "Unsupported Media Type"         },
+	{ 500, "Internal Server Error"          },
+	{ 501, "Not Implemented"                },
+	{ 502, "Bad Gateway"                    },
+	{ 503, "Service Unavailable"            },
+	{ 504, "Gateway Time-out"               },
+	{ 505, "HTTP Version not supported"     }
+};
+
+
+static const int mem_mime_count   = sizeof(mem_mime) / sizeof(mem_mime[0]);
+static const int mem_state_count  = sizeof(mem_state) / sizeof(mem_state[0]);
+
 void sigterm_handler (int sig)
 {
 	printf("ÍË³ö\r\n");
@@ -36,76 +144,34 @@ void sigterm_handler (int sig)
 	_exit(EXIT_SUCCESS);
 }
 
-const char *mimetype(const char *filename)
+const char *fetch_mime(const char *filename)
 {
-	static const char *(assocNames[][2]) =
-	{
-		{ "c",       "text/plain"                         },
-		{ "js",      "text/javascript"                    },
-		{ "gz",      "application/x-gzip"                 },
-		{ "ps",      "application/postscript"             },
-		{ "pdf",     "application/pdf"                    },
-		{ "dvi",     "application/x-dvi"                  },
-		{ "tgz",     "application/x-tgz"                  },
-		{ "tar",     "application/x-tar"                  },
-		{ "zip",     "application/zip"                    },
-		{ "mp3",     "audio/mpeg"                         },
-		{ "m3u",     "audio/x-mpegurl"                    },
-		{ "wma",     "audio/x-ms-wma"                     },
-		{ "wax",     "audio/x-ms-wax"                     },
-		{ "ogg",     "application/ogg"                    },
-		{ "wav",     "audio/x-wav"                        },
-		{ "gif",     "image/gif"                          },
-		{ "jar",     "application/x-java-archive"         },
-		{ "jpg",     "image/jpeg"                         },
-		{ "jpeg",    "image/jpeg"                         },
-		{ "png",     "image/png"                          },
-		{ "xbm",     "image/x-xbitmap"                    },
-		{ "xpm",     "image/x-xbitmap"                    },
-		{ "xwd",     "image/x-xwindowdump"                },
-		{ "css",     "text/css"                           },
-		{ "asc",     "text/plain"                         },
-		{ "cpp",     "text/plain"                         },
-		{ "htm",     "text/html"                          },
-		{ "html",    "text/html"                          },
-		{ "log",     "text/plain"                         },
-		{ "txt",     "text/plain"                         },
-		{ "conf",    "text/plain"                         },
-		{ "dtd",     "text/xml"                           },
-		{ "xml",     "text/xml"                           },
-		{ "mov",     "video/quicktime"                    },
-		{ "mpg",     "video/mpeg"                         },
-		{ "mpeg",    "video/mpeg"                         },
-		{ "qt",      "video/quicktime"                    },
-		{ "avi",     "video/x-msvideo"                    },
-		{ "asf",     "video/x-ms-asf"                     },
-		{ "asx",     "video/x-ms-asf"                     },
-		{ "wmv",     "video/x-ms-wmv"                     },
-		{ "bz2",     "application/x-bzip"                 },
-		{ "tbz",     "application/x-bzip-compressed-tar"  },
-		{ "sig",     "application/pgp-signature"          },
-		{ "spl",     "application/futuresplash"           },
-		{ "swf",     "application/x-shockwave-flash"      },
-		{ "pac",     "application/x-ns-proxy-autoconfig"  },
-		{ "class",   "application/octet-stream"           },
-		{ "tar.gz",  "application/x-tgz"                  },
-		{ "torrent", "application/x-bittorrent"           },
-		{ "tar.bz2", "application/x-bzip-compressed-tar"  },
-		{ "",        "application/octet-stream"           }
-	};
-
-	const char *((*anp)[2]);
-	char *suffix;
+	int i;
+	char *suffix = NULL;
 
 	suffix = strrchr(filename, '.');
-	if (suffix != NULL) 
+	if(!suffix) return mem_mime[mem_mime_count-1].type;
+	
+	suffix++;
+	
+	for(i=0; i<mem_mime_count; i++)
 	{
-		suffix++;
-		for (anp=assocNames; strlen((*anp)[0])>0; anp++)
-			if (!strcmp((*anp)[0], suffix)) break;
+		if (strcmp(mem_mime[i].name, suffix) == 0) return mem_mime[i].type;
 	}
+	
+	return mem_mime[mem_mime_count-1].type;
+}
 
-	return (*anp)[1];
+const char *fetch_state(const size_t code)
+{
+	int i;
+	
+	for(i=0; i<mem_state_count; i++)
+	{
+		if (mem_state[i].code == code) return mem_state[i].type;
+	}
+	
+	return NULL;
 }
 
 void parse_query(char *request, char *uri, int url_len, char *query, int query_len)
@@ -517,7 +583,7 @@ void http_reply_header(struct server_t *server, struct conn_t *conn, time_t file
 		return ;
 	}
 
-	header_len = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nServer: Memhttpd/Beta1.0\r\nDate: %s\r\nContent-Type: %s\r\nContent-Length: %u\r\nLast-Modified: %s\r\nConnection: keep-alive\r\nAccept-Ranges: bytes\r\n\r\n", timebuf, mimetype(conn->req.uri), conn->req.length, lastime);
+	header_len = snprintf(header, sizeof(header), "HTTP/1.1 200 OK\r\nServer: Memhttpd/Beta1.0\r\nDate: %s\r\nContent-Type: %s\r\nContent-Length: %u\r\nLast-Modified: %s\r\nConnection: keep-alive\r\nAccept-Ranges: bytes\r\n\r\n", timebuf, fetch_mime(conn->req.uri), conn->req.length, lastime);
 	
 	bytes = write(conn->fd, header, header_len);
 	if(bytes != header_len)
